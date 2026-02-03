@@ -1,0 +1,24 @@
+# binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
