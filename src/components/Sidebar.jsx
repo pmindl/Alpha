@@ -1,36 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useTheme } from '../hooks/useTheme';
 import { Sun, Moon } from 'lucide-react';
 import { Panel } from './ui/Panel';
 import { Button } from './ui/Button';
 
 export default function Sidebar() {
     // Theme state
-    const [isDark, setIsDark] = useState(() => {
-        const savedTheme = localStorage.getItem('theme');
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        return savedTheme === 'dark' || (!savedTheme && prefersDark);
-    });
-
-    // Sync theme with DOM
-    useEffect(() => {
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [isDark]);
-
-    const toggleTheme = () => {
-        if (isDark) {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-            setIsDark(false);
-        } else {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-            setIsDark(true);
-        }
-    };
+    const { isDark, toggleTheme } = useTheme();
 
     const onDragStart = (event, nodeType) => {
         event.dataTransfer.setData('application/reactflow', nodeType);
