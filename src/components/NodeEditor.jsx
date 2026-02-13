@@ -68,6 +68,14 @@ const NodeEditor = () => {
     // Update selectedNode if the real node data changes
     const activeNode = nodes.find(n => n.id === selectedNode?.id) || null;
 
+    const nodeColor = useCallback((n) => {
+        const type = n.data?.type || n.type;
+        if (type === 'input') return '#3b82f6';
+        if (type === 'output') return '#ec4899';
+        if (type === 'agent') return '#a855f7';
+        return '#64748b';
+    }, []);
+
     return (
         <div className="dndflow" style={{ width: '100vw', height: '100vh', position: 'relative' }}>
             <ReactFlowProvider>
@@ -94,13 +102,7 @@ const NodeEditor = () => {
                         <Background color="var(--bg-dots)" gap={20} size={1} />
                         <MiniMap
                             className="minimap-override"
-                            nodeColor={(n) => {
-                                const type = n.data?.type || n.type;
-                                if (type === 'input') return '#3b82f6';
-                                if (type === 'output') return '#ec4899';
-                                if (type === 'agent') return '#a855f7';
-                                return '#64748b';
-                            }}
+                            nodeColor={nodeColor}
                         />
                     </ReactFlow>
                 </div>
