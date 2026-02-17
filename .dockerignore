@@ -1,0 +1,21 @@
+# Docker ignore for Alpha monorepo builds
+**/node_modules
+**/.git
+**/.next
+**/.turbo
+**/dist
+**/*.log
+.env
+.env.*
+**/.cache
+**/coverage
+**/.vscode
+**/.idea
+
+# Keep only what we need for LibreChat build
+!apps/librechat/
+!packages/ui/
+
+# But ignore node_modules inside those too
+apps/librechat/node_modules
+packages/ui/node_modules

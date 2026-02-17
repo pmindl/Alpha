@@ -1,0 +1,20 @@
+{
+    "name": "@alpha/ts-config",
+    "version": "0.1.0",
+    "private": false,
+    "description": "Alpha ecosystem shared TypeScript configurations",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pmindl/Alpha.git",
+        "directory": "packages/ts-config"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "files": [
+        "base.json",
+        "nextjs.json",
+        "react.json"
+    ]
+}

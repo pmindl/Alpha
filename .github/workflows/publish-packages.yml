@@ -1,0 +1,54 @@
+name: Publish @alpha/* Packages
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@alpha'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Publish @alpha/ts-config
+        working-directory: packages/ts-config
+        run: npm publish --access restricted || echo "Version already exists, skipping"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @alpha/security
+        working-directory: packages/security
+        run: npm publish --access restricted || echo "Version already exists, skipping"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @alpha/sdk
+        working-directory: packages/sdk
+        run: npm publish --access restricted || echo "Version already exists, skipping"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish @alpha/ui
+        working-directory: packages/ui
+        run: npm publish --access restricted || echo "Version already exists, skipping"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

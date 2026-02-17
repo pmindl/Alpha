@@ -1,0 +1,46 @@
+# Dockerfile.alpha — Builds LibreChat frontend with @alpha/ui integration
+# Run from monorepo root: docker build -f apps/librechat/Dockerfile.alpha .
+
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache jemalloc python3 py3-pip uv
+ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
+
+ARG NODE_MAX_OLD_SPACE_SIZE=6144
+
+RUN mkdir -p /app && chown node:node /app
+WORKDIR /app
+
+USER node
+
+# Copy LibreChat package manifests first (for caching)
+COPY --chown=node:node apps/librechat/package.json apps/librechat/package-lock.json ./
+COPY --chown=node:node apps/librechat/api/package.json ./api/package.json
+COPY --chown=node:node apps/librechat/client/package.json ./client/package.json
+COPY --chown=node:node apps/librechat/packages/data-provider/package.json ./packages/data-provider/package.json
+COPY --chown=node:node apps/librechat/packages/data-schemas/package.json ./packages/data-schemas/package.json
+COPY --chown=node:node apps/librechat/packages/api/package.json ./packages/api/package.json
+
+RUN \
+    touch .env ; \
+    mkdir -p /app/client/public/images /app/logs /app/uploads ; \
+    npm config set fetch-retry-maxtimeout 600000 ; \
+    npm config set fetch-retries 5 ; \
+    npm config set fetch-retry-mintimeout 15000 ; \
+    npm ci --no-audit
+
+# Copy full LibreChat source
+COPY --chown=node:node apps/librechat/ .
+
+# Copy packages/ui into a location the Vite alias can resolve
+COPY --chown=node:node packages/ui /packages/ui
+
+RUN \
+    NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" npm run frontend; \
+    npm prune --production; \
+    npm cache clean --force
+
+# Production stage
+EXPOSE 3080
+ENV HOST=0.0.0.0
+CMD ["npm", "run", "backend"]

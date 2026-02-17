@@ -7,10 +7,22 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-ssr
+.next
+.turbo
+
+# Environment
+.env
+.env.*
 *.local
+
+# Secrets vault (encrypted is OK, but exclude by default)
+secrets/
 
 # Editor directories and files
 .vscode/*

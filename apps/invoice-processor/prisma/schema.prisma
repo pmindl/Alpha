@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Invoice {
+  id              String   @id @default(cuid())
+  status          String   @default("PENDING") // PENDING, EXPORTED, EXPORT_ERROR, SKIPPED, DUPLICATE
+  company         String   // firma_a, firma_b
+  supplierName    String
+  supplierIco     String?
+  supplierDic     String?
+  invoiceNumber   String
+  variableSymbol  String?
+  dateIssued      String?
+  dateDue         String?
+  total           Float
+  currency        String   @default("CZK")
+  sourceType      String   // EMAIL, URL, UPLOAD, GDRIVE
+  sourceFileId    String
+  sourceFileName  String
+  externalId      String?
+  rawJson         String
+  errorMessage    String?
+  confidence      Int      @default(0)
+  processedAt     DateTime @default(now())
+  exportedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([supplierIco, invoiceNumber])
+  @@index([status])
+  @@index([company])
+  logs            ProcessingLog[]
+}
+
+model ProcessingLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  level     String   // INFO, WARN, ERROR
+  source    String   // e.g. "API", "Batch", "Gemini"
+  message   String
+  details   String?  // JSON or text
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@index([level])
+  @@index([timestamp])
+}

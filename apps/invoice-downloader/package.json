@@ -1,0 +1,49 @@
+{
+  "name": "invoice-downloader",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node ../../scripts/run-with-secrets.js invoice-downloader next dev -p 3001",
+    "dev:standalone": "next dev -p 3001",
+    "build": "next build",
+    "start": "node ../../scripts/run-with-secrets.js invoice-downloader next start -p 3001",
+    "start:standalone": "next start -p 3001",
+    "test": "vitest run",
+    "lint": "eslint",
+    "mcp": "node ../../scripts/run-with-secrets.js invoice-downloader tsx src/mcp-server.ts",
+    "mcp:standalone": "tsx src/mcp-server.ts",
+    "mcp:sse": "node ../../scripts/run-with-secrets.js invoice-downloader tsx src/mcp-sse.ts",
+    "mcp:sse:standalone": "tsx src/mcp-sse.ts"
+  },
+  "dependencies": {
+    "@alpha/sdk": "*",
+    "@alpha/ui": "*",
+    "@google/generative-ai": "^0.24.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "axios": "^1.13.5",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.0",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tsx": "^4.21.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
+  }
+}

@@ -1,0 +1,69 @@
+/* Alpha Design System — Theme Variables
+ * Pure CSS, no Tailwind dependency.
+ * Provides consistent theming across LibreChat via CSS custom properties.
+ */
+
+:root {
+    --alpha-background: 0 0% 100%;
+    --alpha-foreground: 222.2 84% 4.9%;
+    --alpha-card: 0 0% 100%;
+    --alpha-card-fg: 222.2 84% 4.9%;
+    --alpha-popover: 0 0% 100%;
+    --alpha-popover-fg: 222.2 84% 4.9%;
+    --alpha-primary: 222.2 47.4% 11.2%;
+    --alpha-primary-fg: 210 40% 98%;
+    --alpha-secondary: 210 40% 96.1%;
+    --alpha-secondary-fg: 222.2 47.4% 11.2%;
+    --alpha-muted: 210 40% 96.1%;
+    --alpha-muted-fg: 215.4 16.3% 46.9%;
+    --alpha-accent: 210 40% 96.1%;
+    --alpha-accent-fg: 222.2 47.4% 11.2%;
+    --alpha-destructive: 0 84.2% 60.2%;
+    --alpha-destructive-fg: 210 40% 98%;
+    --alpha-border: 214.3 31.8% 91.4%;
+    --alpha-input: 214.3 31.8% 91.4%;
+    --alpha-ring: 222.2 84% 4.9%;
+    --alpha-radius: 0.5rem;
+}
+
+.dark {
+    --alpha-background: 222.2 84% 4.9%;
+    --alpha-foreground: 210 40% 98%;
+    --alpha-card: 222.2 84% 4.9%;
+    --alpha-card-fg: 210 40% 98%;
+    --alpha-popover: 222.2 84% 4.9%;
+    --alpha-popover-fg: 210 40% 98%;
+    --alpha-primary: 210 40% 98%;
+    --alpha-primary-fg: 222.2 47.4% 11.2%;
+    --alpha-secondary: 217.2 32.6% 17.5%;
+    --alpha-secondary-fg: 210 40% 98%;
+    --alpha-muted: 217.2 32.6% 17.5%;
+    --alpha-muted-fg: 215 20.2% 65.1%;
+    --alpha-accent: 217.2 32.6% 17.5%;
+    --alpha-accent-fg: 210 40% 98%;
+    --alpha-destructive: 0 62.8% 30.6%;
+    --alpha-destructive-fg: 210 40% 98%;
+    --alpha-border: 217.2 32.6% 17.5%;
+    --alpha-input: 217.2 32.6% 17.5%;
+    --alpha-ring: 212.7 26.8% 83.9%;
+}
+
+@keyframes alpha-accordion-down {
+    from {
+        height: 0;
+    }
+
+    to {
+        height: var(--radix-accordion-content-height);
+    }
+}
+
+@keyframes alpha-accordion-up {
+    from {
+        height: var(--radix-accordion-content-height);
+    }
+
+    to {
+        height: 0;
+    }
+}
