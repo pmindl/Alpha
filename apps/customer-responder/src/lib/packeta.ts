@@ -1,22 +1,69 @@
 import axios from 'axios';
+import { parseStringPromise, Builder } from 'xml2js';
 
 const API_KEY = process.env.PACKETA_API_KEY;
-const API_URL = process.env.PACKETA_API_URL || 'https://www.zasilkovna.cz/api';
+const API_PASSWORD = process.env.PACKETA_API_PASSWORD;
+const API_URL = process.env.PACKETA_API_URL || 'https://www.zasilkovna.cz/api/rest';
 
-// Note: Packeta API is SOAP/XML based for some parts, or REST for others.
-// Assuming simple tracking API exists or using a known endpoint.
-// Since specific docs weren't fully resolved, this is a placeholder structure 
-// that should be adapted to the actual endpoint (e.g., getting packet status).
+export interface PacketStatus {
+    dateTime: string;
+    statusCode: string;
+    statusText: string;
+    branchId: string;
+    destinationBranchId: string;
+    externalTrackingCode: string;
+}
 
-export async function trackPacket(packetId: string) {
-    if (!API_KEY) return null;
+export async function trackPacket(packetId: string): Promise<PacketStatus | null> {
+    if (!API_PASSWORD) {
+        console.warn("⚠️ PACKETA_API_PASSWORD not set. Tracking disabled.");
+        return null;
+    }
+
     try {
-        // Example structure - this needs to be verified against specific Packeta API docs
-        // For now, assuming standard GET
-        const response = await axios.get(`${API_URL}/v1/${API_KEY}/packet/${packetId}`);
-        // Packeta often uses XML. If so, we'd need xml2js.
-        // But let's assume JSON or string response for now implies check in verify phase.
-        return response.data;
+        // Construct XML Request for packetStatus
+        const builder = new Builder({ headless: true, renderOpts: { pretty: false } });
+        const xmlRequest = builder.buildObject({
+            packetStatus: {
+                apiPassword: API_PASSWORD,
+                packetId: packetId
+            }
+        });
+
+        // Send Request
+        const response = await axios.post(API_URL, xmlRequest, {
+            headers: { 'Content-Type': 'application/xml' }
+        });
+
+        // Parse XML Response
+        const result = await parseStringPromise(response.data, { explicitArray: false });
+
+        // Check for faults
+        if (result.response && result.response.fault) {
+            console.error("❌ Packeta API Fault:", result.response.fault);
+            return null;
+        }
+
+        /* 
+           Expected structure (simplified):
+           <response>
+             <dateTime>...</dateTime>
+             <statusCode>...</statusCode>
+             ...
+           </response>
+        */
+        const data = result.response;
+        if (!data) return null;
+
+        return {
+            dateTime: data.dateTime,
+            statusCode: data.statusCode,
+            statusText: data.statusText,
+            branchId: data.branchId,
+            destinationBranchId: data.destinationBranchId,
+            externalTrackingCode: data.externalTrackingCode
+        };
+
     } catch (error) {
         console.error("❌ Error tracking packet:", error);
         return null;

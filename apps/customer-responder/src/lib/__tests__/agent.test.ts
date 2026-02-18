@@ -42,6 +42,7 @@ describe('Agent Logic', () => {
         vi.mocked(knowledge.searchKnowledgeBase).mockResolvedValue([]);
         vi.mocked(woocommerce.findCustomerOrders).mockResolvedValue([]);
         vi.mocked(gmail.createDraft).mockResolvedValue(true);
+        // Cast to any to avoid strict type checking in test file for now, or import type
         vi.mocked(packeta.trackPacket).mockResolvedValue(null);
     });
 
