@@ -125,13 +125,6 @@ const SettingsPanel = ({ selectedNode, setNodes, setSelectedNode }) => {
 
             </div>
 
-            {/* Footer */}
-            <div style={{ padding: '16px', borderTop: '1px solid var(--border-subtle)' }}>
-                <Button>
-                    SAVE
-                </Button>
-            </div>
-
         </Panel>
     );
 };
