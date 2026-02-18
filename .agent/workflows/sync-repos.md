@@ -12,6 +12,7 @@ Push app directories from the monorepo to their standalone GitHub repos.
 |--------------|-------------|
 | `apps/invoice-downloader` | `pmindl/invoice-downloader` |
 | `apps/invoice-processor` | `pmindl/Invoice-Processor` |
+| `apps/customer-responder` | `pmindl/customer-responder` |
 | `experiments/canvas` | TBD |
 
 ## One-time Setup

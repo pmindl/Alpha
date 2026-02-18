@@ -18,6 +18,7 @@
         "apps/invoice-downloader",
         "apps/invoice-processor",
         "apps/master",
+        "apps/customer-responder",
         "experiments/*",
         "packages/*"
     ]
