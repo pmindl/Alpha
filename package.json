@@ -1,0 +1,46 @@
+{
+    "name": "customer-responder",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "node ../../scripts/run-with-secrets.js customer-responder next dev -p 3004",
+        "dev:standalone": "next dev -p 3004",
+        "build": "next build",
+        "start": "node ../../scripts/run-with-secrets.js customer-responder next start -p 3004",
+        "start:standalone": "next start -p 3004",
+        "lint": "next lint",
+        "mcp": "node ../../scripts/run-with-secrets.js customer-responder tsx src/mcp-server.ts",
+        "mcp:standalone": "tsx src/mcp-server.ts"
+    },
+    "dependencies": {
+        "@alpha/sdk": "*",
+        "@alpha/security": "*",
+        "@alpha/ui": "*",
+        "@google/generative-ai": "^0.1.0",
+        "@lancedb/lancedb": "^0.4.0",
+        "@modelcontextprotocol/sdk": "^1.26.0",
+        "ai": "^6.0.0",
+        "axios": "^1.13.5",
+        "dotenv": "^16.0.0",
+        "googleapis": "^171.4.0",
+        "next": "14.1.0",
+        "react": "18.2.0",
+        "react-dom": "18.2.0",
+        "woocommerce-rest-ts-api": "^7.1.2",
+        "zod": "^3.0.0"
+    },
+    "devDependencies": {
+        "@alpha/ts-config": "*",
+        "@types/node": "^20.11.24",
+        "@types/react": "^18.2.61",
+        "@types/react-dom": "^18.2.19",
+        "autoprefixer": "^10.4.17",
+        "eslint": "^8.57.0",
+        "eslint-config-next": "14.1.0",
+        "postcss": "^8.4.35",
+        "tailwindcss": "^3.4.1",
+        "tsx": "^4.7.1",
+        "typescript": "^5.3.3",
+        "vitest": "^4.0.18"
+    }
+}
