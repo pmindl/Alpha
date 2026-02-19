@@ -46,6 +46,15 @@ export class VaultManager {
         this.save();
     }
 
+    public updateCredentialValue(id: string, value: string): void {
+        const credential = this.data.credentials.find(c => c.id === id);
+        if (credential) {
+            credential.value = value;
+            credential.updatedAt = new Date().toISOString();
+            this.save();
+        }
+    }
+
     public getCredential(id: string): Credential | undefined {
         return this.data.credentials.find(c => c.id === id);
     }

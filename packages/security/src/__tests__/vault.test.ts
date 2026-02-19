@@ -34,7 +34,8 @@ describe("VaultManager", () => {
                 value: "test-value",
                 description: "Test credential",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             expect(fs.existsSync(vaultPath)).toBe(true);
@@ -49,7 +50,8 @@ describe("VaultManager", () => {
                 value: "sk-abc123",
                 description: "API Key",
                 scopes: ["global"],
-                metadata: { provider: "openai" },
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: "openai", service: "api" },
             });
 
             const cred = vault.getCredential("API_KEY");
@@ -57,7 +59,7 @@ describe("VaultManager", () => {
             expect(cred).toBeDefined();
             expect(cred!.id).toBe("API_KEY");
             expect(cred!.value).toBe("sk-abc123");
-            expect(cred!.metadata).toEqual({ provider: "openai" });
+            expect(cred!.metadata).toEqual({ provider: "openai", service: "api" });
         });
 
         it("updates an existing credential (same id)", () => {
@@ -67,7 +69,8 @@ describe("VaultManager", () => {
                 value: "old-value",
                 description: "Old",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             vault.addCredential({
@@ -75,7 +78,8 @@ describe("VaultManager", () => {
                 value: "new-value",
                 description: "Updated",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             const cred = vault.getCredential("API_KEY");
@@ -90,7 +94,8 @@ describe("VaultManager", () => {
                 value: "delete-me",
                 description: "Temp",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             const removed = vault.removeCredential("TO_DELETE");
@@ -121,7 +126,8 @@ describe("VaultManager", () => {
                 value: "super-secret",
                 description: "A secret",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             const list = vault.listCredentials();
@@ -141,7 +147,8 @@ describe("VaultManager", () => {
                 value: "global-value",
                 description: "Global",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             const env = vault.getEnvForApp("invoice-downloader");
@@ -156,7 +163,8 @@ describe("VaultManager", () => {
                 value: "app-value",
                 description: "App specific",
                 scopes: ["app:invoice-downloader"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             const envMatch = vault.getEnvForApp("invoice-downloader");
@@ -173,14 +181,16 @@ describe("VaultManager", () => {
                 value: "g",
                 description: "",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
             vault.addCredential({
                 id: "APP_ONLY",
                 value: "a",
                 description: "",
                 scopes: ["app:myapp"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             const env = vault.getEnvForApp("myapp");
@@ -199,7 +209,8 @@ describe("VaultManager", () => {
                 value: "persisted",
                 description: "Persistence test",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             // Read (new instance)
@@ -217,7 +228,8 @@ describe("VaultManager", () => {
                 value: "val",
                 description: "",
                 scopes: ["global"],
-                metadata: {},
+                updatedAt: new Date().toISOString(),
+                metadata: { provider: 'test', service: 'test' },
             });
 
             const wrongKey = Encryption.generateMasterKey();
