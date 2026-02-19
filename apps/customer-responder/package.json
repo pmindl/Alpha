@@ -10,9 +10,7 @@
         "start:standalone": "next start -p 3004",
         "lint": "next lint",
         "mcp": "node ../../scripts/run-with-secrets.js customer-responder tsx src/mcp-server.ts",
-        "mcp:standalone": "tsx src/mcp-server.ts",
-        "auth:google": "tsx scripts/auth-google.ts",
-        "test:gmail": "tsx scripts/test-gmail.ts"
+        "mcp:standalone": "tsx src/mcp-server.ts"
     },
     "dependencies": {
         "@alpha/sdk": "*",
