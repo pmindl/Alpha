@@ -19,6 +19,7 @@
         "apps/invoice-processor",
         "apps/master",
         "apps/customer-responder",
+        "apps/gmail-labeler",
         "experiments/*",
         "packages/*"
     ]
