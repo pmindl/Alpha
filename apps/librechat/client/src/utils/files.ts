@@ -17,6 +17,7 @@ import {
 import type { TFile, EndpointFileConfig, FileConfig } from 'librechat-data-provider';
 import type { QueryClient } from '@tanstack/react-query';
 import type { ExtendedFile } from '~/common';
+import type { TranslationKeys } from '~/hooks/useLocalize';
 
 export const partialTypes = ['text/x-'];
 
@@ -224,6 +225,7 @@ export const validateFiles = ({
   files,
   fileList,
   setError,
+  localize,
   endpointFileConfig,
   toolResource,
   fileConfig,
@@ -231,6 +233,7 @@ export const validateFiles = ({
   fileList: File[];
   files: Map<string, ExtendedFile>;
   setError: (error: string) => void;
+  localize: (phraseKey: TranslationKeys, options?: any) => string;
   endpointFileConfig: EndpointFileConfig;
   toolResource?: string;
   fileConfig: FileConfig | null;
@@ -239,19 +242,19 @@ export const validateFiles = ({
     endpointFileConfig;
   /** Block all uploads if the endpoint is explicitly disabled */
   if (disabled === true) {
-    setError('com_ui_attach_error_disabled');
+    setError(localize('com_ui_attach_error_disabled'));
     return false;
   }
   const existingFiles = Array.from(files.values());
   const incomingTotalSize = fileList.reduce((total, file) => total + file.size, 0);
   if (incomingTotalSize === 0) {
-    setError('com_error_files_empty');
+    setError(localize('com_error_files_empty'));
     return false;
   }
   const currentTotalSize = existingFiles.reduce((total, file) => total + file.size, 0);
 
   if (fileLimit && fileList.length + files.size > fileLimit) {
-    setError(`You can only upload up to ${fileLimit} files at a time.`);
+    setError(localize('com_ui_error_file_limit', { limit: fileLimit }));
     return false;
   }
 
@@ -261,7 +264,7 @@ export const validateFiles = ({
 
     // Check if the file type is still empty after the extension check
     if (!fileType) {
-      setError('Unable to determine file type for: ' + originalFile.name);
+      setError(localize('com_ui_error_file_type_unknown', { name: originalFile.name }));
       return false;
     }
 
@@ -283,18 +286,20 @@ export const validateFiles = ({
 
     if (!checkType(originalFile.type, mimeTypesToCheck)) {
       console.log(originalFile);
-      setError('Currently, unsupported file type: ' + originalFile.type);
+      setError(localize('com_ui_error_unsupported_file_type', { type: originalFile.type }));
       return false;
     }
 
     if (fileSizeLimit && originalFile.size >= fileSizeLimit) {
-      setError(`File size exceeds ${fileSizeLimit / megabyte} MB.`);
+      setError(
+        localize('com_error_files_upload_too_large', { 0: fileSizeLimit / megabyte }),
+      );
       return false;
     }
   }
 
   if (totalSizeLimit && currentTotalSize + incomingTotalSize > totalSizeLimit) {
-    setError(`The total size of the files cannot exceed ${totalSizeLimit / megabyte} MB.`);
+    setError(localize('com_ui_error_total_size_exceeds', { limit: totalSizeLimit / megabyte }));
     return false;
   }
 
@@ -312,7 +317,7 @@ export const validateFiles = ({
   const uniqueFilesSet = new Set(combinedFilesInfo);
 
   if (uniqueFilesSet.size !== combinedFilesInfo.length) {
-    setError('com_error_files_dupe');
+    setError(localize('com_error_files_dupe'));
     return false;
   }
 
