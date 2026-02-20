@@ -12,7 +12,8 @@
         "mcp": "node ../../scripts/run-with-secrets.js customer-responder tsx src/mcp-server.ts",
         "mcp:standalone": "tsx src/mcp-server.ts",
         "auth:google": "tsx scripts/auth-google.ts",
-        "test:gmail": "tsx scripts/test-gmail.ts"
+        "test:gmail": "tsx scripts/test-gmail.ts",
+        "test": "vitest run"
     },
     "dependencies": {
         "@alpha/sdk": "*",
