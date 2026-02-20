@@ -44,6 +44,14 @@ describe("AlphaMCPClient", () => {
         it("connects without error", async () => {
             await expect(client.connect()).resolves.not.toThrow();
         });
+
+        it("fails when connection is rejected", async () => {
+            const error = new Error("Connection failed");
+            // Access private client property to mock rejection
+            // @ts-ignore
+            client.client.connect.mockRejectedValue(error);
+            await expect(client.connect()).rejects.toThrow("Connection failed");
+        });
     });
 
     describe("listTools", () => {
