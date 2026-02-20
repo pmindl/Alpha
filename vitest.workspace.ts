@@ -7,4 +7,5 @@ export default defineWorkspace([
     "apps/master",
     "apps/invoice-downloader",
     "apps/invoice-processor",
+    "apps/customer-responder",
 ]);
