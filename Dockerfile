@@ -2,21 +2,16 @@
 # Alpha Monorepo — Shared Dockerfile for Next.js Apps
 # ============================================================
 #
-# This Dockerfile is designed to build any Next.js app in the
-# Alpha monorepo, with access to shared @alpha/* packages.
-#
-# Usage from Coolify:
-#   Build Pack: Dockerfile
-#   Dockerfile Location: Dockerfile (this file, at app root)
-#   Base Directory: /apps/<app-name>
-#
-# The Dockerfile is placed in each app directory, and Coolify
-# sets the build context to the monorepo root automatically
-# when using the "Dockerfile Location" relative to base dir.
-#
 # Build args:
 #   APP_NAME  — name of the app directory (e.g., "master")
 #   APP_PORT  — port the app listens on (e.g., 3000)
+#
+# Coolify config per app:
+#   Build Pack: Dockerfile
+#   Dockerfile Location: /Dockerfile
+#   Base Directory: /
+#   Environment variable: APP_NAME=<app-name>
+#   Environment variable: APP_PORT=<port>
 # ============================================================
 
 FROM node:20-alpine AS base
@@ -28,19 +23,11 @@ WORKDIR /app
 # Copy root workspace files
 COPY package.json package-lock.json turbo.json ./
 
-# Copy all package.json files for workspaces
-COPY packages/core/package.json ./packages/core/
-COPY packages/sdk/package.json ./packages/sdk/
-COPY packages/security/package.json ./packages/security/
-COPY packages/ts-config/package.json ./packages/ts-config/
-COPY packages/ui/package.json ./packages/ui/
-
-# Copy all app package.json files
-COPY apps/master/package.json ./apps/master/
-COPY apps/invoice-downloader/package.json ./apps/invoice-downloader/
-COPY apps/invoice-processor/package.json ./apps/invoice-processor/
-COPY apps/customer-responder/package.json ./apps/customer-responder/
-COPY apps/gmail-labeler/package.json ./apps/gmail-labeler/
+# Copy ALL workspace package.json files using a glob-friendly approach.
+# We copy the entire packages/ and apps/ trees first (just package.json),
+# then run npm ci to resolve the workspace graph.
+COPY packages/ ./packages/
+COPY apps/ ./apps/
 
 RUN npm ci
 
@@ -48,11 +35,16 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
 ARG APP_NAME
 ENV APP_NAME=${APP_NAME}
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages ./packages
+COPY --from=deps /app/apps ./apps
+COPY package.json package-lock.json turbo.json ./
+
+# Copy the full source code
+COPY . .
 
 # Build shared packages first, then the target app
 RUN npx turbo run build --filter=${APP_NAME}
@@ -61,6 +53,7 @@ RUN npx turbo run build --filter=${APP_NAME}
 FROM base AS runner
 WORKDIR /app
 
+ARG APP_NAME
 ARG APP_PORT=3000
 ENV NODE_ENV=production
 ENV PORT=${APP_PORT}
@@ -71,6 +64,8 @@ RUN adduser --system --uid 1001 nextjs
 # Copy the standalone output
 COPY --from=builder /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=builder /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+
+# Copy public directory if it exists (not all apps have one)
 COPY --from=builder /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 
 USER nextjs
