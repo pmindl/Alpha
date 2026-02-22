@@ -1,27 +1,20 @@
-name: Deploy to Hetzner VPS
+name: Test & Deploy via Coolify
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      skip_tests:
-        description: 'Skip tests (for urgent hotfixes)'
-        required: false
-        default: 'false'
-        type: boolean
 
 concurrency:
-  group: deploy-vps
+  group: deploy-production
   cancel-in-progress: false
 
 jobs:
   # ──────────────────────────────────────────────
   # 1. Build & Test
   # ──────────────────────────────────────────────
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.skip_tests != 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,56 +33,15 @@ jobs:
         run: npm test
 
   # ──────────────────────────────────────────────
-  # 2. Deploy via SSH
+  # 2. Trigger Coolify Deployment
   # ──────────────────────────────────────────────
   deploy:
-    needs: [build-and-test]
-    if: always() && (needs.build-and-test.result == 'success' || needs.build-and-test.result == 'skipped')
+    needs: test
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_SSH_PORT || 22 }}
-          script_stop: true
-          script: |
-            set -e
-            echo "🚀 Starting deployment..."
-
-            # Navigate to project directory
-            cd ~/alpha
-
-            # Pull latest code
-            echo "📦 Pulling latest code from main..."
-            git fetch origin main
-            git reset --hard origin/main
-
-            # Install production dependencies
-            echo "📥 Installing dependencies..."
-            npm ci
-
-            # Build shared packages first, then apps
-            echo "🔨 Building all packages and apps..."
-            npx turbo run build
-
-            # Reload all PM2 processes (zero-downtime)
-            echo "♻️  Reloading PM2 processes..."
-            pm2 reload ecosystem.config.cjs --update-env
-
-            # Save PM2 process list (survives reboot)
-            pm2 save
-
-            # Update LibreChat (Docker)
-            echo "🐳 Updating LibreChat..."
-            cd apps/librechat
-            docker compose pull
-            docker compose up -d --remove-orphans
-            cd ~/alpha
-
-            echo "✅ Deployment complete!"
-            echo "📊 PM2 Status:"
-            pm2 status
+      - name: Trigger Coolify webhook
+        run: |
+          curl --request GET "${{ secrets.COOLIFY_WEBHOOK }}" \
+               --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+               --fail --silent --show-error
+          echo "✅ Coolify deployment triggered"

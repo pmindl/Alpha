@@ -11,11 +11,12 @@
 **/coverage
 **/.vscode
 **/.idea
+**/__pycache__
 
-# Keep only what we need for LibreChat build
-!apps/librechat/
-!packages/ui/
-
-# But ignore node_modules inside those too
-apps/librechat/node_modules
-packages/ui/node_modules
+# Exclude non-essential dirs from Docker context
+experiments/
+mcp-servers/
+.github/
+.agent/
+secrets/
+nginx/
