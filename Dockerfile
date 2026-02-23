@@ -43,6 +43,8 @@ COPY --from=deps /app/packages ./packages
 COPY --from=deps /app/apps ./apps
 COPY package.json package-lock.json turbo.json ./
 
+# Bust Docker cache to ensure latest source is used
+ARG CACHEBUST=1
 # Copy the full source code
 COPY . .
 
