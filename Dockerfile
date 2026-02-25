@@ -75,4 +75,4 @@ USER nextjs
 EXPOSE ${APP_PORT}
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "apps/${APP_NAME}/server.js"]
+CMD node apps/${APP_NAME}/server.js
