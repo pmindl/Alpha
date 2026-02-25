@@ -281,3 +281,6 @@ export function createMCPServer() {
 
     return server;
 }
+
+// Export a singleton instance for use in API routes
+export const mcpServer = createMCPServer();
