@@ -67,8 +67,8 @@ describe("AlphaMCPClient", () => {
         it("calls a tool and returns the result", async () => {
             const result = await client.callTool("get-active-user", {});
 
-            expect(result.content).toBeDefined();
-            expect(result.content[0].text).toContain("ok");
+            expect((result as any).content).toBeDefined();
+            expect((result as any).content[0].text).toContain("ok");
         });
 
         it("passes arguments through correctly", async () => {
