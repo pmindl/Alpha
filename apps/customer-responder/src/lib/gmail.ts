@@ -1,16 +1,18 @@
 import { google } from 'googleapis';
 
-const auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
+function getGmailClient() {
+    const auth = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+    );
 
-auth.setCredentials({
-    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-});
+    auth.setCredentials({
+        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+    });
 
-const gmail = google.gmail({ version: 'v1', auth });
+    return google.gmail({ version: 'v1', auth });
+}
 
 export interface EmailMessage {
     id: string;
@@ -24,6 +26,7 @@ export interface EmailMessage {
 
 export async function listUnreadEmails(label: string = 'INBOX'): Promise<EmailMessage[]> {
     try {
+        const gmail = getGmailClient();
         const res = await gmail.users.messages.list({
             userId: 'me',
             q: `label:${label} is:unread`,
@@ -94,6 +97,7 @@ export async function createDraft(threadId: string, to: string, subject: string,
             .replace(/\//g, '_')
             .replace(/=+$/, '');
 
+        const gmail = getGmailClient();
         await gmail.users.drafts.create({
             userId: 'me',
             requestBody: {

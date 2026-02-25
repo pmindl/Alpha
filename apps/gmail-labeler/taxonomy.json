@@ -1,0 +1,48 @@
+{
+    "STATUS": [
+        "New",
+        "Processed",
+        "Waiting-for-reply",
+        "Closed"
+    ],
+    "TYPE": [
+        "Order",
+        "Complaint",
+        "Return",
+        "Shipping",
+        "Payment",
+        "Product-inquiry",
+        "General-inquiry",
+        "Supplier",
+        "Newsletter-inbound",
+        "Spam",
+        "Internal",
+        "Marketing",
+        "Technical",
+        "Order-status"
+    ],
+    "FINANCE": [
+        "Invoice-incoming",
+        "Invoice-overdue",
+        "Invoice-outgoing",
+        "Payment-confirmation",
+        "Credit-note",
+        "Contract",
+        "Sales"
+    ],
+    "ACTION": [
+        "Prepare-reply",
+        "Escalate",
+        "Forward-internally",
+        "No-action",
+        "Waiting-for-info",
+        "Archive",
+        "Triage"
+    ],
+    "PRIORITY": [
+        "Urgent",
+        "Normal",
+        "Low"
+    ],
+    "DRAFT": []
+}
