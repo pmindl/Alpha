@@ -7,8 +7,12 @@ export default async function Home() {
     const client = await getMcpClient();
     // In a real scenario, we might list tools first or know the tool name
     const result = await client.callTool("get-active-user", {});
-    if (result && result.content && result.content[0] && result.content[0].type === 'text') {
-      userContext = JSON.parse(result.content[0].text);
+    if (result && result.content) {
+      // @ts-ignore - The MCP SDK type defines content as an object {}, but it returns an array of Content objects
+      if (result.content[0] && result.content[0].type === 'text') {
+        // @ts-ignore
+        userContext = JSON.parse(result.content[0].text);
+      }
     }
   } catch (e) {
     console.error("MCP Error:", e);
