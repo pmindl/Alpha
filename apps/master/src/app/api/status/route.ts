@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 const APPS = [
     { id: 'master', name: 'Master Orchestrator', url: 'http://localhost:3000' },
+    { id: 'invoice-downloader', name: 'Invoice Downloader', url: 'http://localhost:3001' },
     { id: 'invoice-processor', name: 'Invoice Processor', url: 'http://localhost:3002' },
+    { id: 'gmail-labeler', name: 'Gmail Labeler', url: 'http://localhost:4003/sse' },
     { id: 'customer-responder', name: 'Customer Responder', url: 'http://localhost:3004' },
-    { id: 'librechat', name: 'LibreChat Options', url: 'http://localhost:3080' } // Assuming default port
+    { id: 'librechat', name: 'LibreChat Options', url: 'http://localhost:3080' }
 ];
 
 export async function GET() {
