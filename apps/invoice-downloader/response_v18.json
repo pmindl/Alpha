@@ -1,0 +1,87 @@
+{
+    "success": true,
+    "processedCount": 1,
+    "results": [
+        {
+            "emailId": "19c508da07c95d95",
+            "subject": "Antigravity Test Invoice",
+            "metadata": {
+                "document_type": "invoice",
+                "my_company_identifier": "unknown",
+                "provider": "antigravity",
+                "content_type": "attachment",
+                "invoice_url": null,
+                "summary": "E-mail obsahuje fakturu od Antigravity.",
+                "relevant_files": [
+                    "Invoice-59ED2AC2-0014.pdf",
+                    "Vydaná faktura - 0125120014.pdf"
+                ],
+                "is_invoice": true
+            },
+            "files": [
+                {
+                    "name": "_Petr_Mindl__pmindl_g_Invoice-59ED2AC2-0014.pdf",
+                    "id": "1f56saj0pmZ0oteteta2KsEuNu3LVKaMQ",
+                    "link": "https://drive.google.com/file/d/1f56saj0pmZ0oteteta2KsEuNu3LVKaMQ/view?usp=drivesdk",
+                    "reason": "AI Content Verified: Obsahuje slovo Invoice, datum vystavení a částku"
+                },
+                {
+                    "name": "_Petr_Mindl__pmindl_g_1125122966.pdf",
+                    "id": "1MQev4Kmjp812W0AssLFq1PI-qOKyM3f2",
+                    "link": "https://drive.google.com/file/d/1MQev4Kmjp812W0AssLFq1PI-qOKyM3f2/view?usp=drivesdk",
+                    "reason": "AI Content Verified: Obsahuje slovo 'FAKTURA - DAŇOVÝ DOKLAD' a částku k úhradě."
+                },
+                {
+                    "name": "_Petr_Mindl__pmindl_g_Vydaná faktura - 0125120014.pdf",
+                    "id": "14bL6WAa1qJANJgrVsFpRjFeG1vu0Quah",
+                    "link": "https://drive.google.com/file/d/14bL6WAa1qJANJgrVsFpRjFeG1vu0Quah/view?usp=drivesdk",
+                    "reason": "AI Content Verified: Obsahuje slovo Faktura a částku k úhradě"
+                }
+            ],
+            "logs": [
+                "Starting ingestion request...",
+                "Authenticated as: petr.m.lumegro@gmail.com (Messages Total: 8041)",
+                "Querying Gmail with: subject:Antigravity -label:PROCESSED",
+                "Found 1 messages matching query.",
+                "Analyzing: Antigravity Test Invoice (19c508da07c95d95)",
+                "Attachments: Invoice-59ED2AC2-0014.pdf, zasilkovna.pdf, 1125122966.pdf, Vydaná faktura - 0125120014.pdf",
+                "Strong Keyword Signal Detected! (Subject: true, Files: true)",
+                "AI Analysis Result: {\"document_type\":\"invoice\",\"my_company_identifier\":\"unknown\",\"provider\":\"antigravity\",\"content_type\":\"attachment\",\"invoice_url\":null,\"summary\":\"E-mail obsahuje fakturu od Antigravity.\",\"relevant_files\":[\"Invoice-59ED2AC2-0014.pdf\",\"Vydaná faktura - 0125120014.pdf\"],\"is_invoice\":true}",
+                "Decision: PROCESS EMAIL (AI Confirmed)",
+                "Found 4 supported file candidates.",
+                "Verifying content for: Invoice-59ED2AC2-0014.pdf...",
+                "Processing: Invoice-59ED2AC2-0014.pdf [AI Content Verified: Obsahuje slovo Invoice, datum vystavení a částku]",
+                "Uploaded: _Petr_Mindl__pmindl_g_Invoice-59ED2AC2-0014.pdf -> https://drive.google.com/file/d/1f56saj0pmZ0oteteta2KsEuNu3LVKaMQ/view?usp=drivesdk",
+                "Skipped: zasilkovna.pdf (Blacklisted Term Found (Matched: zasilkovna))",
+                "Verifying content for: 1125122966.pdf...",
+                "Processing: 1125122966.pdf [AI Content Verified: Obsahuje slovo 'FAKTURA - DAŇOVÝ DOKLAD' a částku k úhradě.]",
+                "Uploaded: _Petr_Mindl__pmindl_g_1125122966.pdf -> https://drive.google.com/file/d/1MQev4Kmjp812W0AssLFq1PI-qOKyM3f2/view?usp=drivesdk",
+                "Verifying content for: Vydaná faktura - 0125120014.pdf...",
+                "Processing: Vydaná faktura - 0125120014.pdf [AI Content Verified: Obsahuje slovo Faktura a částku k úhradě]",
+                "Uploaded: _Petr_Mindl__pmindl_g_Vydaná faktura - 0125120014.pdf -> https://drive.google.com/file/d/14bL6WAa1qJANJgrVsFpRjFeG1vu0Quah/view?usp=drivesdk"
+            ]
+        }
+    ],
+    "fullLogs": [
+        "Starting ingestion request...",
+        "Authenticated as: petr.m.lumegro@gmail.com (Messages Total: 8041)",
+        "Querying Gmail with: subject:Antigravity -label:PROCESSED",
+        "Found 1 messages matching query.",
+        "Analyzing: Antigravity Test Invoice (19c508da07c95d95)",
+        "Attachments: Invoice-59ED2AC2-0014.pdf, zasilkovna.pdf, 1125122966.pdf, Vydaná faktura - 0125120014.pdf",
+        "Strong Keyword Signal Detected! (Subject: true, Files: true)",
+        "AI Analysis Result: {\"document_type\":\"invoice\",\"my_company_identifier\":\"unknown\",\"provider\":\"antigravity\",\"content_type\":\"attachment\",\"invoice_url\":null,\"summary\":\"E-mail obsahuje fakturu od Antigravity.\",\"relevant_files\":[\"Invoice-59ED2AC2-0014.pdf\",\"Vydaná faktura - 0125120014.pdf\"],\"is_invoice\":true}",
+        "Decision: PROCESS EMAIL (AI Confirmed)",
+        "Found 4 supported file candidates.",
+        "Verifying content for: Invoice-59ED2AC2-0014.pdf...",
+        "Processing: Invoice-59ED2AC2-0014.pdf [AI Content Verified: Obsahuje slovo Invoice, datum vystavení a částku]",
+        "Uploaded: _Petr_Mindl__pmindl_g_Invoice-59ED2AC2-0014.pdf -> https://drive.google.com/file/d/1f56saj0pmZ0oteteta2KsEuNu3LVKaMQ/view?usp=drivesdk",
+        "Skipped: zasilkovna.pdf (Blacklisted Term Found (Matched: zasilkovna))",
+        "Verifying content for: 1125122966.pdf...",
+        "Processing: 1125122966.pdf [AI Content Verified: Obsahuje slovo 'FAKTURA - DAŇOVÝ DOKLAD' a částku k úhradě.]",
+        "Uploaded: _Petr_Mindl__pmindl_g_1125122966.pdf -> https://drive.google.com/file/d/1MQev4Kmjp812W0AssLFq1PI-qOKyM3f2/view?usp=drivesdk",
+        "Verifying content for: Vydaná faktura - 0125120014.pdf...",
+        "Processing: Vydaná faktura - 0125120014.pdf [AI Content Verified: Obsahuje slovo Faktura a částku k úhradě]",
+        "Uploaded: _Petr_Mindl__pmindl_g_Vydaná faktura - 0125120014.pdf -> https://drive.google.com/file/d/14bL6WAa1qJANJgrVsFpRjFeG1vu0Quah/view?usp=drivesdk"
+    ]
+}
