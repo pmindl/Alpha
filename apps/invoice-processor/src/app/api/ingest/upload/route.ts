@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { uploadFile } from '@/lib/gdrive';
 import { getCompanyById, getCompanies } from '@/lib/companies';
+import { secureCompare, validateFile, validateFileContent, sanitizeFilename } from '@alpha/security';
 
 export async function POST(request: Request) {
-    // Auth check for API usage (manual upload from UI might need proxy or key)
-    // For simplicity, UI proxy or direct key if available.
+    // Auth check for API usage using timing-safe comparison
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.APP_API_KEY}`) {
+    const token = authHeader?.split('Bearer ')[1] || '';
+
+    if (!secureCompare(token, process.env.APP_API_KEY || '')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -19,6 +21,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
+        const fileValidation = validateFile(file);
+        if (!fileValidation.valid) {
+            return NextResponse.json({ error: fileValidation.error }, { status: 400 });
+        }
+
         const company = getCompanyById(companyId);
         if (!company) {
             return NextResponse.json({ error: 'Invalid company' }, { status: 400 });
@@ -26,8 +33,15 @@ export async function POST(request: Request) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
 
+        const contentValidation = validateFileContent(buffer, file.type);
+        if (!contentValidation.valid) {
+            return NextResponse.json({ error: contentValidation.error }, { status: 400 });
+        }
+
+        const safeFilename = sanitizeFilename(file.name);
+
         const fileId = await uploadFile(
-            file.name,
+            safeFilename,
             file.type,
             buffer,
             company.gdriveFolderId

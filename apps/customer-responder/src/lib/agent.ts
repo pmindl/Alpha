@@ -87,17 +87,22 @@ export async function processEmail(email: EmailMessage) {
     }
 
     // 2. Construct Prompt
+    // Sentinel: Sanitize inputs to prevent prompt injection via delimiter manipulation
+    const safeFrom = email.from.replace(/"""/g, "'''");
+    const safeSubject = email.subject.replace(/"""/g, "'''");
+    const safeBody = email.body.replace(/"""/g, "'''");
+
     const prompt = `
 You are a helpful customer support agent for an online store.
 Your goal is to draft a polite, helpful reply to a customer email.
 DO NOT send the email. Just write the draft.
 
 Incoming Email:
-From: ${email.from}
-Subject: ${email.subject}
+From: ${safeFrom}
+Subject: ${safeSubject}
 Body:
 """
-${email.body}
+${safeBody}
 """
 
 Context:

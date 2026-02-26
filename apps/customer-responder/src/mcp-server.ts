@@ -5,6 +5,7 @@ import { listUnreadEmails } from './lib/gmail';
 import { processEmail } from './lib/agent';
 import { findCustomerOrders } from './lib/woocommerce';
 import { createDraft } from './lib/gmail';
+import { GetRecentOrdersSchema, DraftReplySchema } from './lib/mcp-validation';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
@@ -113,7 +114,14 @@ async function runServer() {
                 };
             }
             case "get_recent_orders": {
-                const email = String(request.params.arguments?.email);
+                const result = GetRecentOrdersSchema.safeParse(request.params.arguments);
+                if (!result.success) {
+                    return {
+                        isError: true,
+                        content: [{ type: "text", text: `Invalid arguments: ${result.error.message}` }]
+                    };
+                }
+                const { email } = result.data;
                 console.error(`Tool: get_recent_orders for [REDACTED]`);
                 const orders = await findCustomerOrders(email);
                 return {
@@ -121,8 +129,14 @@ async function runServer() {
                 };
             }
             case "draft_reply": {
-                const threadId = String(request.params.arguments?.threadId);
-                const message = String(request.params.arguments?.message);
+                const result = DraftReplySchema.safeParse(request.params.arguments);
+                if (!result.success) {
+                    return {
+                        isError: true,
+                        content: [{ type: "text", text: `Invalid arguments: ${result.error.message}` }]
+                    };
+                }
+                const { threadId, message } = result.data;
                 console.error(`Tool: draft_reply for thread ${threadId}`);
 
                 // Note: We need a 'to' address for createDraft, but in this manual tool usage

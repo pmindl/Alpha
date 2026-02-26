@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { oauth2Client } from './auth';
 import { Readable } from 'stream';
 import { DriveUploadResult } from './types';
+import { escapeDriveQueryString } from './utils';
 
 const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
@@ -9,8 +10,9 @@ const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
 export async function findFile(name: string, folderId: string): Promise<{ id: string } | null> {
     try {
+        const safeName = escapeDriveQueryString(name);
         const res = await drive.files.list({
-            q: `name = '${name}' and '${folderId}' in parents and trashed = false`,
+            q: `name = '${safeName}' and '${folderId}' in parents and trashed = false`,
             fields: 'files(id, name)',
             pageSize: 1
         });
