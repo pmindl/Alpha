@@ -42,3 +42,24 @@ Your `package.json` scripts must look like this:
 - **Linting**: ESLint (root config)
 - **Formatting**: Prettier
 - **Strictness**: TypeScript `strict: true`
+
+## 5. Security & Content Security Policy (CSP)
+
+Some applications in this repository (e.g. `experiments/canvas` or production builds) utilize a strict Content Security Policy (CSP) injected via a `<meta>` tag in `index.html`. 
+
+**Current default CSP:**
+`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none';`
+
+### Troubleshooting CSP Issues
+If you encounter browser console errors stating that a script, image, or font was blocked by the Content Security Policy, **do not immediately remove the CSP tag**. Instead, carefully update it:
+
+1. **External Fonts (Google Fonts, etc.):** 
+   Add `https://fonts.googleapis.com` to `style-src` and `https://fonts.gstatic.com` to `font-src`.
+   
+2. **External Images (Avatars, CDN links):** 
+   Add the specific domain (e.g., `https://avatars.githubusercontent.com`) to `img-src`.
+
+3. **External Scripts/Analytics (PostHog, Stripe, etc.):** 
+   Add the specific domain to `script-src` and `connect-src`. If the script requires inline evaluation, you may need to add `'unsafe-eval'`.
+
+By default, maintain the "walled garden" approach and only open specific domains when absolutely necessary.
