@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { AlphaMCPServer, NextSSEServerTransport } from "../mcp";
+import { NextSSEServerTransport } from "../mcp";
+import { AlphaMCPServer } from "@alpha/sdk";
 
 describe("AlphaMCPServer", () => {
     it("can be instantiated without errors", () => {
