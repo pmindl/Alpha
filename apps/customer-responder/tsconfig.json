@@ -21,11 +21,6 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "vitest.config.ts",
-    "src/test/**/*",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "scripts"
+    "node_modules"
   ]
 }

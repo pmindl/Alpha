@@ -1,23 +1,9 @@
 import { CompanyConfig } from './types';
 
-let cachedCompanies: CompanyConfig[] | null = null;
-
-/**
- * Resets the cached companies configuration.
- * Useful for testing when environment variables change.
- */
-export function resetCache(): void {
-    cachedCompanies = null;
-}
-
 export function getCompanies(): CompanyConfig[] {
-    if (cachedCompanies) {
-        return cachedCompanies;
-    }
-
     const companyIds = (process.env.COMPANIES || '').split(',').filter(Boolean);
 
-    cachedCompanies = companyIds.map(id => {
+    return companyIds.map(id => {
         const prefix = `COMPANY_${id.toUpperCase()}`;
         return {
             id: id,
@@ -28,8 +14,6 @@ export function getCompanies(): CompanyConfig[] {
             emailPatterns: (process.env[`${prefix}_EMAIL_PATTERNS`] || '').split(',').filter(Boolean)
         };
     });
-
-    return cachedCompanies;
 }
 
 export function getCompanyById(id: string): CompanyConfig | undefined {

@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  transpilePackages: ["@alpha/ui", "@alpha/core", "@alpha/security", "@alpha/sdk"],
-  reactStrictMode: true,
   basePath: "/processor",
+  transpilePackages: ["@alpha/ui", "@alpha/sdk"],
 };
 
 export default nextConfig;

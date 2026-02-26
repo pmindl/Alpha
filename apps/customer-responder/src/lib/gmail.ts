@@ -1,18 +1,18 @@
 import { google } from 'googleapis';
+import { constructRawEmail } from './email-utils';
+import { logErrorSafely } from './logger';
 
-function getGmailClient() {
-    const auth = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
-    );
+const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
 
-    auth.setCredentials({
-        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-    });
+auth.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+});
 
-    return google.gmail({ version: 'v1', auth });
-}
+const gmail = google.gmail({ version: 'v1', auth });
 
 export interface EmailMessage {
     id: string;
@@ -26,7 +26,6 @@ export interface EmailMessage {
 
 export async function listUnreadEmails(label: string = 'INBOX'): Promise<EmailMessage[]> {
     try {
-        const gmail = getGmailClient();
         const res = await gmail.users.messages.list({
             userId: 'me',
             q: `label:${label} is:unread`,
@@ -74,30 +73,20 @@ export async function listUnreadEmails(label: string = 'INBOX'): Promise<EmailMe
 
         return emails;
     } catch (error) {
-        console.error('❌ Error listing emails:', error);
+        logErrorSafely('Error listing emails', error);
         return [];
     }
 }
 
 export async function createDraft(threadId: string, to: string, subject: string, body: string) {
     try {
-        // Construct email message
-        const messageParts = [
-            `To: ${to}`,
-            `Subject: ${subject}`,
-            'Content-Type: text/plain; charset="UTF-8"',
-            'MIME-Version: 1.0',
-            '',
-            body
-        ];
-        const message = messageParts.join('\n');
+        const message = constructRawEmail(to, subject, body);
         const encodedMessage = Buffer.from(message)
             .toString('base64')
             .replace(/\+/g, '-')
             .replace(/\//g, '_')
             .replace(/=+$/, '');
 
-        const gmail = getGmailClient();
         await gmail.users.drafts.create({
             userId: 'me',
             requestBody: {
@@ -110,7 +99,7 @@ export async function createDraft(threadId: string, to: string, subject: string,
         console.log(`📝 Draft created for thread ${threadId}`);
         return true;
     } catch (error) {
-        console.error('❌ Error creating draft:', error);
+        logErrorSafely('Error creating draft', error);
         return false;
     }
 }

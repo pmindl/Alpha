@@ -7,7 +7,6 @@ import { parsePacketaInvoice } from '@/lib/parsers/packeta';
 import { CompanyConfig, ParsedInvoice } from '@/lib/types';
 import { logEvent } from '@/lib/logger';
 
-export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow 60s for processing
 
 export async function processCompany(company: CompanyConfig) {

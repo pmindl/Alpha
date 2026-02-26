@@ -1,22 +1,19 @@
 import { google } from 'googleapis';
 import { CompanyConfig } from './types';
 
-function getDriveClient() {
-    const auth = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
-    );
+const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
 
-    auth.setCredentials({
-        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-    });
+auth.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+});
 
-    return google.drive({ version: 'v3', auth });
-}
+const drive = google.drive({ version: 'v3', auth });
 
 export async function listFiles(folderId: string) {
-    const drive = getDriveClient();
     const res = await drive.files.list({
         q: `'${folderId}' in parents and trashed = false`,
         fields: 'files(id, name, mimeType, createdTime)',
@@ -25,7 +22,6 @@ export async function listFiles(folderId: string) {
 }
 
 export async function downloadFile(fileId: string): Promise<{ buffer: Buffer; mimeType: string; name: string }> {
-    const drive = getDriveClient();
     const fileParams = await drive.files.get({ fileId, fields: 'name, mimeType' });
 
     const res = await drive.files.get(
@@ -50,7 +46,6 @@ export async function uploadFile(
     const bufferStream = new stream.PassThrough();
     bufferStream.end(buffer);
 
-    const drive = getDriveClient();
     const res = await drive.files.create({
         requestBody: {
             name,
@@ -67,7 +62,6 @@ export async function uploadFile(
 }
 
 export async function moveFile(fileId: string, oldFolderId: string, newFolderId: string) {
-    const drive = getDriveClient();
     // Determine previous parents to remove
     const file = await drive.files.get({
         fileId: fileId,

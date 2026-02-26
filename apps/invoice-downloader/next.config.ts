@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  transpilePackages: ["@alpha/ui", "@alpha/core", "@alpha/security", "@alpha/sdk"],
-  reactStrictMode: true,
+  transpilePackages: ["@alpha/ui"],
   basePath: "/invoice",
 };
 
