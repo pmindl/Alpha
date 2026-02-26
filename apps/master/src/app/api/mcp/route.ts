@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     transportMap.set(sessionId, customTransport);
 
     // Connect the server to this transport
-    await mcpServer.connect(customTransport);
+    await mcpServer.server.connect(customTransport);
 
     // Return the SSE stream
     return new Response(customTransport.stream, {

@@ -17,7 +17,8 @@
     "exports": {
         ".": "./src/index.tsx",
         "./styles.css": "./src/styles.css",
-        "./alpha-theme.css": "./src/alpha-theme.css"
+        "./alpha-theme.css": "./src/alpha-theme.css",
+        "./tailwind.config": "./tailwind.config.js"
     },
     "scripts": {
         "lint": "eslint .",

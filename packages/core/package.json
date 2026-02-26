@@ -17,7 +17,7 @@
     "scripts": {
         "lint": "eslint .",
         "test": "vitest run",
-        "build": "tsc"
+        "build": "tsc --noEmit"
     },
     "dependencies": {
         "zod": "^3.22.4"

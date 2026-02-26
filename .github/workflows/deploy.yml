@@ -1,0 +1,47 @@
+name: Test & Deploy via Coolify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # ──────────────────────────────────────────────
+  # 1. Build & Test
+  # ──────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all packages and apps
+        run: npx turbo run build
+
+      - name: Run tests
+        run: npm test
+
+  # ──────────────────────────────────────────────
+  # 2. Trigger Coolify Deployment
+  # ──────────────────────────────────────────────
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify webhook
+        run: |
+          curl --request GET "${{ secrets.COOLIFY_WEBHOOK }}" \
+               --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+               --fail --silent --show-error
+          echo "✅ Coolify deployment triggered"

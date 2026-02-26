@@ -114,7 +114,7 @@ async function runServer() {
             }
             case "get_recent_orders": {
                 const email = String(request.params.arguments?.email);
-                console.error(`Tool: get_recent_orders for ${email}`);
+                console.error(`Tool: get_recent_orders for [REDACTED]`);
                 const orders = await findCustomerOrders(email);
                 return {
                     content: [{ type: "text", text: JSON.stringify(orders, null, 2) }]

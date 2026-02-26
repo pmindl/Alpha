@@ -59,9 +59,8 @@ const useFileHandling = (params?: UseFileHandling) => {
 
   const displayToast = useCallback(() => {
     if (errors.length > 1) {
-      // TODO: this should not be a dynamic localize input!!
       const errorList = Array.from(new Set(errors))
-        .map((e, i) => `${i > 0 ? '• ' : ''}${localize(e as TranslationKeys) || e}\n`)
+        .map((e, i) => `${i > 0 ? '• ' : ''}${e}\n`)
         .join('');
       showToast({
         message: errorList,
@@ -69,17 +68,15 @@ const useFileHandling = (params?: UseFileHandling) => {
         duration: 5000,
       });
     } else if (errors.length === 1) {
-      // TODO: this should not be a dynamic localize input!!
-      const message = localize(errors[0] as TranslationKeys) || errors[0];
       showToast({
-        message,
+        message: errors[0],
         status: 'error',
         duration: 5000,
       });
     }
 
     setErrors([]);
-  }, [errors, showToast, localize]);
+  }, [errors, showToast]);
 
   const debouncedDisplayToast = debounce(displayToast, 250);
 
@@ -142,14 +139,13 @@ const useFileHandling = (params?: UseFileHandling) => {
         clearUploadTimer(file_id as string);
         deleteFileById(file_id as string);
 
-        let errorMessage = 'com_error_files_upload';
-
         if (error?.code === 'ERR_CANCELED') {
-          errorMessage = 'com_error_files_upload_canceled';
+          setError(localize('com_error_files_upload_canceled'));
         } else if (error?.response?.data?.message) {
-          errorMessage = error.response.data.message;
+          setError(error.response.data.message);
+        } else {
+          setError(localize('com_error_files_upload'));
         }
-        setError(errorMessage);
       },
     },
     abortControllerRef.current?.signal,
@@ -261,13 +257,14 @@ const useFileHandling = (params?: UseFileHandling) => {
         files,
         fileList,
         setError,
+        localize,
         fileConfig,
         endpointFileConfig,
         toolResource: _toolResource,
       });
     } catch (error) {
       console.error('file validation error', error);
-      setError('com_error_files_validation');
+      setError(localize('com_error_files_validation'));
       return;
     }
     if (!filesAreValid) {
@@ -399,9 +396,9 @@ const useFileHandling = (params?: UseFileHandling) => {
         deleteFileById(file_id);
         console.log('file handling error', error);
         if (error instanceof Error && error.message.includes('HEIC')) {
-          setError('com_error_heic_conversion');
+          setError(localize('com_error_heic_conversion'));
         } else {
-          setError('com_error_files_process');
+          setError(localize('com_error_files_process'));
         }
       }
     }

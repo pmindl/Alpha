@@ -39,7 +39,7 @@ export async function processEmail(email: EmailMessage) {
     const emailMatch = email.from.match(/<([^>]+)>/);
     const cleanEmail = emailMatch ? emailMatch[1] : email.from;
 
-    console.log(`🤖 Processing email: ${email.subject} from ${cleanEmail}`);
+    console.log(`🤖 Processing email: [REDACTED] from [REDACTED]`);
 
     // Check key availability early
     if (!await validateAI()) {
@@ -122,10 +122,10 @@ Instructions:
         // 4. Save Draft
         const success = await createDraft(email.threadId, email.from, `Re: ${email.subject}`, text);
         if (success) {
-            console.log(`✅ Draft created for ${email.subject}`);
+            console.log(`✅ Draft created for [REDACTED]`);
             return true;
         } else {
-            console.error(`❌ Failed to create draft for ${email.subject}`);
+            console.error(`❌ Failed to create draft for [REDACTED]`);
             return false;
         }
     } catch (error) {

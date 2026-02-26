@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { parseStringPromise, Builder } from 'xml2js';
+import { logErrorSafely } from './logger';
 
 const API_KEY = process.env.PACKETA_API_KEY;
 const API_PASSWORD = process.env.PACKETA_API_PASSWORD;
@@ -65,7 +66,7 @@ export async function trackPacket(packetId: string): Promise<PacketStatus | null
         };
 
     } catch (error) {
-        console.error("❌ Error tracking packet:", error);
+        logErrorSafely("Error tracking packet", error);
         return null;
     }
 }
