@@ -10,8 +10,7 @@
         "start:standalone": "next start -p 3004",
         "lint": "next lint",
         "mcp": "node ../../scripts/run-with-secrets.js customer-responder tsx src/mcp-server.ts",
-        "mcp:standalone": "tsx src/mcp-server.ts",
-        "test": "vitest run"
+        "mcp:standalone": "tsx src/mcp-server.ts"
     },
     "dependencies": {
         "@alpha/sdk": "*",

@@ -1,9 +1,10 @@
+import React, { memo } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { Sun, Moon } from 'lucide-react';
 import { Panel } from './ui/Panel';
 import { Button } from './ui/Button';
 
-export default function Sidebar() {
+const Sidebar = memo(function Sidebar() {
     // Theme state
     const { isDark, toggleTheme } = useTheme();
 
@@ -36,4 +37,6 @@ export default function Sidebar() {
             </Button>
         </Panel>
     );
-}
+});
+
+export default Sidebar;
