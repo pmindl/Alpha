@@ -1,5 +1,5 @@
 
-import google.generativeai as genai
+from google import genai
 import json
 import logging
 from config import Config
@@ -9,7 +9,7 @@ from typing import Optional
 # Setup logger
 logger = logging.getLogger("GeminiClient")
 
-# Pydantic model for validation (Optional but good for documentation of expectation)
+# Pydantic model for validation
 class ClassificationResult(BaseModel):
     status: str
     type: str
@@ -43,21 +43,49 @@ Rules:
 - ACTION/Escalate means a human must handle this — do not use Prepare-reply together with Escalate
 """
 
+UPDATE_SYSTEM_PROMPT = """You are an email classification assistant for an e-commerce store management team.
+An email thread was previously classified. A new message has arrived in this thread.
+Based on the new message and the existing labels, decide if the classification should change.
+
+You must return ONLY valid JSON with the same schema as the original classification.
+If the labels should stay the same, return the existing values. Only change what's needed.
+
+Schema:
+{
+  "status": "<one of: New | Processed | Waiting-for-reply | Closed>",
+  "type": "<one of the TYPE/ values without prefix>",
+  "finance": "<one of the FINANCE/ values without prefix, or null if not applicable>",
+  "action": "<one of the ACTION/ values without prefix>",
+  "priority": "<one of: Urgent | Normal | Low>",
+  "reason": "<brief explanation of what changed or why labels stay the same>"
+}
+"""
+
+
 class GeminiClient:
     def __init__(self):
         if not Config.GEMINI_API_KEY:
             logger.error("Gemini API Key missing")
             raise ValueError("GEMINI_API_KEY is not set")
             
-        genai.configure(api_key=Config.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            system_instruction=SYSTEM_PROMPT
-        )
+        self.client = genai.Client(api_key=Config.GEMINI_API_KEY)
+        self.model_name = "gemini-2.0-flash"
+
+    def _parse_response(self, text):
+        """Parse and validate LLM JSON response."""
+        # Clean markdown code blocks if present
+        if text.startswith("```json"):
+            text = text.replace("```json", "").replace("```", "")
+        elif text.startswith("```"):
+            text = text.replace("```", "")
+
+        data = json.loads(text.strip())
+        validated = ClassificationResult.model_validate(data)
+        return validated.model_dump()
 
     def classify_thread(self, subject, message_count, thread_text):
         """
-        Sends thread context to Gemini and validates response.
+        Full thread classification. Sends entire thread context to Gemini.
         """
         user_prompt = f"""Classify the following email thread:
 
@@ -71,30 +99,67 @@ Number of messages: {message_count}
 Return only JSON."""
 
         try:
-            # Generate content
-            response = self.model.generate_content(user_prompt)
-            text = response.text
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=user_prompt,
+                config={
+                    "system_instruction": SYSTEM_PROMPT,
+                }
+            )
             
-            # Clean markdown code blocks if present
-            if text.startswith("```json"):
-                text = text.replace("```json", "").replace("```", "")
-            elif text.startswith("```"):
-                text = text.replace("```", "")
-
-            data = json.loads(text.strip())
+            usage = getattr(response, 'usage_metadata', None)
+            tokens = {
+                "prompt_tokens": usage.prompt_token_count if usage else 0,
+                "completion_tokens": usage.candidates_token_count if usage else 0
+            }
             
-            # Basic schema validation via Pydantic
-            # (We use .model_validate only if we want strict typing failure, 
-            # here we just want to ensure it's a dict that looks right)
-            # But let's use pydantic for safety
-            validated = ClassificationResult.model_validate(data)
-            
-            return validated.model_dump()
+            return self._parse_response(response.text), tokens
             
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON from Gemini: {e}")
-            logger.debug(f"Raw response: {text}")
-            return None
+            return None, None
         except Exception as e:
             logger.error(f"Gemini API error: {e}")
-            return None
+            return None, None
+
+    def classify_thread_update(self, subject, new_message_text, current_labels):
+        """
+        Minimal update classification. Only sends the new message + existing labels.
+        Much more token-efficient than re-classifying the entire thread.
+        """
+        labels_str = ", ".join(current_labels)
+        
+        user_prompt = f"""A new message arrived in this thread:
+
+Subject: {subject}
+Current labels: [{labels_str}]
+
+--- NEW MESSAGE ---
+{new_message_text}
+--- END ---
+
+Should the classification change? Return the full JSON (updated or same)."""
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=user_prompt,
+                config={
+                    "system_instruction": UPDATE_SYSTEM_PROMPT,
+                }
+            )
+            
+            usage = getattr(response, 'usage_metadata', None)
+            tokens = {
+                "prompt_tokens": usage.prompt_token_count if usage else 0,
+                "completion_tokens": usage.candidates_token_count if usage else 0
+            }
+            
+            return self._parse_response(response.text), tokens
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON from Gemini (update): {e}")
+            return None, None
+        except Exception as e:
+            logger.error(f"Gemini API error (update): {e}")
+            return None, None

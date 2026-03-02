@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "node ../../scripts/run-with-secrets.js gmail-labeler python -X utf8 main.py --mode scheduler",
+        "dev:standalone": "python -X utf8 main.py --mode scheduler",
         "start": "npm run dev",
         "test": "python -m unittest discover tests",
         "mcp": "node ../../scripts/run-with-secrets.js gmail-labeler tsx src/mcp-server.ts",

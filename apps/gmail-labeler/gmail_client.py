@@ -5,6 +5,7 @@ from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
 import logging
 from config import Config
+from label_taxonomy import get_full_label_list
 
 SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
@@ -21,6 +22,7 @@ class GmailClient:
         self.service = build('gmail', 'v1', credentials=self.creds)
         self.logger = logging.getLogger("GmailClient")
         self._label_map_cache = {}
+        self._managed_label_ids = None
 
     def get_label_map(self):
         """Returns Name->ID map, cached."""
@@ -28,6 +30,67 @@ class GmailClient:
             results = self.service.users().labels().list(userId='me').execute()
             self._label_map_cache = {l['name']: l['id'] for l in results.get('labels', [])}
         return self._label_map_cache
+
+    def get_managed_label_ids(self):
+        """Returns set of label IDs that belong to our taxonomy."""
+        if self._managed_label_ids is None:
+            label_map = self.get_label_map()
+            taxonomy_names = set(get_full_label_list())
+            self._managed_label_ids = {
+                label_map[name] for name in taxonomy_names if name in label_map
+            }
+        return self._managed_label_ids
+
+    def get_current_history_id(self):
+        """Get current historyId from Gmail profile."""
+        try:
+            profile = self.service.users().getProfile(userId='me').execute()
+            return profile.get('historyId')
+        except HttpError as error:
+            self.logger.error(f"Error getting profile/historyId: {error}")
+            return None
+
+    def fetch_changed_threads_since(self, history_id):
+        """
+        Use Gmail history.list to find threads that changed since history_id.
+        Returns a list of unique thread IDs.
+        """
+        changed_thread_ids = set()
+        try:
+            page_token = None
+            while True:
+                results = self.service.users().history().list(
+                    userId='me',
+                    startHistoryId=history_id,
+                    historyTypes=['messageAdded', 'labelAdded', 'labelRemoved'],
+                    pageToken=page_token
+                ).execute()
+
+                for record in results.get('history', []):
+                    # messagesAdded contains new messages with threadId
+                    for msg_added in record.get('messagesAdded', []):
+                        tid = msg_added.get('message', {}).get('threadId')
+                        if tid:
+                            changed_thread_ids.add(tid)
+                    # Also check labelsAdded/labelsRemoved for thread changes
+                    for msg_changed in record.get('labelsAdded', []) + record.get('labelsRemoved', []):
+                        tid = msg_changed.get('message', {}).get('threadId')
+                        if tid:
+                            changed_thread_ids.add(tid)
+
+                page_token = results.get('nextPageToken')
+                if not page_token:
+                    break
+
+        except HttpError as error:
+            if error.resp.status == 404:
+                # historyId is too old, Gmail purged it. Need full sweep.
+                self.logger.warning(f"History ID {history_id} expired (404). Full sweep needed.")
+                return None  # Signal caller to do full sweep
+            self.logger.error(f"Error fetching history: {error}")
+            return None
+
+        return list(changed_thread_ids)
 
     def ensure_labels_exist(self, taxonomy_labels):
         """
@@ -42,7 +105,6 @@ class GmailClient:
             for label_name in taxonomy_labels:
                 if label_name not in existing_labels:
                     try:
-                        # Define label color/visibility if needed (simplified here)
                         label_object = {
                             'name': label_name,
                             'labelListVisibility': 'labelShow',
@@ -56,16 +118,17 @@ class GmailClient:
                         
             if created_count > 0:
                 print(f"✅ Initialized {created_count} new labels.")
+                # Invalidate cache since we created new labels
+                self._label_map_cache = {}
+                self._managed_label_ids = None
                 
         except HttpError as error:
             print(f"An error occurred listing labels: {error}")
 
     def fetch_recent_threads(self, days_lookback=14, limit=None):
         """
-        Fetch threads newer than X days that are NOT in DRAFT/ (optional filter).
-        We fetch ALL threads in window and let logic filter what needs processing.
+        Fetch threads newer than X days.
         """
-        date_threshold = (datetime.now() - timedelta(days=days_lookback)).strftime('%Y/%m/%d')
         query = f"newer_than:{days_lookback}d"
         
         threads = []
@@ -137,6 +200,3 @@ class GmailClient:
         except HttpError as error:
             self.logger.error(f"Error modifying labels for thread {thread_id}: {error}")
 
-    def _get_label_map(self):
-        """Internal helper, use get_label_map instead."""
-        return self.get_label_map()

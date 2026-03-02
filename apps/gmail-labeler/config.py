@@ -24,6 +24,14 @@ class Config:
     # App Config
     DAYS_LOOKBACK = int(os.getenv("DAYS_LOOKBACK", 14))
     
+    # Autonomous Runner Config
+    INCREMENTAL_INTERVAL_MINUTES = int(os.getenv("INCREMENTAL_INTERVAL_MINUTES", 5))
+    FULL_SWEEP_HOUR = int(os.getenv("FULL_SWEEP_HOUR", 3))  # 03:00 daily
+    STATE_DB_PATH = os.getenv(
+        "STATE_DB_PATH", 
+        os.path.join(os.path.dirname(__file__), "data", "labeler_state.db")
+    )
+    
     @classmethod
     def validate(cls):
         missing = []
@@ -36,7 +44,3 @@ class Config:
             print(f"❌ Critical Error: Missing configuration variables: {', '.join(missing)}")
             print("   Ensure you are running via 'npm run dev' (Vault Mode) or have a valid .env.local (Standalone Mode).")
             sys.exit(1)
-
-# Auto-validate on import
-# Config.validate() 
-# Moved to main.py to allow lightweight modes (like taxonomy)

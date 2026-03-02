@@ -96,6 +96,11 @@ class StructuredLogger:
         with open(self.json_path, 'w', encoding='utf-8') as f:
             json.dump(self.log_data, f, indent=2)
             
-        self.log(f"RUN COMPLETE | duration={duration_ms}ms | summary={self.log_data.get('summary', '')}")
+        cost_str = f" | Cost: ${summary_stats.get('total_cost_usd', 0.0):.5f} ({summary_stats.get('total_tokens_spent', 0)} tokens)" if 'total_cost_usd' in summary_stats else ""
+        self.log(f"RUN COMPLETE | duration={duration_ms}ms{cost_str} | summary={self.log_data.get('summary', '')}")
+        
+        self.log(f"\n[{self.log_data.get('mode', 'RUN').upper()}] Run Complete. Scanned {summary_stats.get('threads_scanned', 0)} threads. Modified: {summary_stats.get('threads_modified', 0)}, Skipped: {summary_stats.get('threads_skipped', 0)}")
+        if 'total_cost_usd' in summary_stats:
+            self.log(f"   ↳ Cost: ${summary_stats['total_cost_usd']:.5f} ({summary_stats['total_tokens_spent']} tokens spent via Gemini)")
         
         return self.log_data
