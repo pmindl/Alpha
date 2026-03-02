@@ -259,20 +259,20 @@ class Labeler:
         else:
             self.gmail.modify_thread_labels(t_id, add_labels=proposed_labels, remove_labels=remove_labels)
 
-        # Log action
-        self.logger.log_action(
-            t_id, subject, proposed_labels, remove_labels, [], classification['reason']
-        )
-        
-        # Update state cache
-        self.state.update_thread_state(
-            t_id, 
-            current_msg_count, 
-            proposed_labels, 
-            prompt_tokens=prompt_tokens, 
-            completion_tokens=completion_tokens, 
-            cost_usd=cost_usd
-        )
+            # Log action
+            self.logger.log_action(
+                t_id, subject, proposed_labels, remove_labels, [], classification['reason']
+            )
+            
+            # Update state cache
+            self.state.update_thread_state(
+                t_id, 
+                current_msg_count, 
+                proposed_labels, 
+                prompt_tokens=prompt_tokens, 
+                cost_usd=cost_usd,
+                completion_tokens=completion_tokens
+            )
         
         stats["threads_modified"] += 1
         
