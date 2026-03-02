@@ -4,7 +4,7 @@ const APPS = [
     { id: 'master', name: 'Master Orchestrator', url: 'http://localhost:3000' },
     { id: 'invoice-downloader', name: 'Invoice Downloader', url: 'http://localhost:3001' },
     { id: 'invoice-processor', name: 'Invoice Processor', url: 'http://localhost:3002' },
-    { id: 'gmail-labeler', name: 'Gmail Labeler', url: 'http://localhost:4003/sse' },
+    { id: 'gmail-labeler', name: 'Gmail Labeler', url: 'http://localhost:3003' },
     { id: 'customer-responder', name: 'Customer Responder', url: 'http://localhost:3004' },
     { id: 'librechat', name: 'LibreChat Options', url: 'http://localhost:3080' }
 ];
@@ -12,12 +12,11 @@ const APPS = [
 export async function GET() {
     const statuses = await Promise.all(APPS.map(async (app) => {
         try {
-            // timeout 1s
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1000);
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
 
             const res = await fetch(app.url, {
-                method: 'HEAD',
+                method: 'GET',
                 signal: controller.signal
             }).catch(() => null);
 
