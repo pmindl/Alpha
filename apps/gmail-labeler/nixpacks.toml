@@ -1,3 +1,4 @@
+# Gmail Labeler: Python 3.11 + Node.js environment
 [phases.setup]
 nixPkgs = ["nodejs", "python311", "python311Packages.pip"]
 
