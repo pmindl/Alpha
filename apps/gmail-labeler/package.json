@@ -3,10 +3,10 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev": "node ../../scripts/run-with-secrets.js gmail-labeler python -X utf8 main.py --mode scheduler",
-        "dev:standalone": "python -X utf8 main.py --mode scheduler",
-        "start": "python -X utf8 main.py --mode scheduler",
-        "test": "python -m unittest discover tests",
+        "dev": "node ../../scripts/run-with-secrets.js gmail-labeler python3 -X utf8 main.py --mode scheduler",
+        "dev:standalone": "python3 -X utf8 main.py --mode scheduler",
+        "start": "python3 -X utf8 main.py --mode scheduler",
+        "test": "python3 -m unittest discover tests",
         "mcp": "node ../../scripts/run-with-secrets.js gmail-labeler tsx src/mcp-server.ts",
         "mcp:standalone": "tsx src/mcp-server.ts"
     },
