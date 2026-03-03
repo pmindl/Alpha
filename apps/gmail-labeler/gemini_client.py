@@ -5,6 +5,7 @@ import logging
 from config import Config
 from pydantic import BaseModel, Field
 from typing import Optional
+from label_taxonomy import TAXONOMY, get_taxonomy_for_prompt
 
 # Setup logger
 logger = logging.getLogger("GeminiClient")
@@ -18,22 +19,30 @@ class ClassificationResult(BaseModel):
     priority: str
     reason: str
 
-SYSTEM_PROMPT = """You are an email classification assistant for an e-commerce store management team.
+
+def _build_system_prompt():
+    """Build the system prompt with dynamically injected taxonomy values."""
+    taxonomy_block = get_taxonomy_for_prompt()
+    return f"""You are an email classification assistant for an e-commerce store management team.
 You analyze email threads and classify them using a predefined label taxonomy.
 
 You must return ONLY valid JSON. No explanation, no markdown, no preamble.
 
+ALLOWED LABEL VALUES (you MUST use ONLY these exact values):
+{taxonomy_block}
+
 Your output must follow this exact schema:
-{
-  "status": "<one of: New | Processed | Waiting-for-reply | Closed>",
-  "type": "<one of the TYPE/ values without prefix>",
-  "finance": "<one of the FINANCE/ values without prefix, or null if not applicable>",
-  "action": "<one of the ACTION/ values without prefix>",
-  "priority": "<one of: Urgent | Normal | Low>",
+{{
+  "status": "<one of: {' | '.join(TAXONOMY['STATUS'])}>",
+  "type": "<one of: {' | '.join(TAXONOMY['TYPE'])}>",
+  "finance": "<one of: {' | '.join(TAXONOMY['FINANCE'])}, or null if not applicable>",
+  "action": "<one of: {' | '.join(TAXONOMY['ACTION'])}>",
+  "priority": "<one of: {' | '.join(TAXONOMY['PRIORITY'])}>",
   "reason": "<brief English explanation of classification decisions, max 2 sentences>"
-}
+}}
 
 Rules:
+- IMPORTANT: Use ONLY the exact label values listed above. Do NOT invent new labels.
 - Read ALL messages in the thread before deciding
 - If the last message is from us (the store), set status to Waiting-for-reply
 - If the thread shows resolution or a closed matter, set status to Closed
@@ -43,22 +52,31 @@ Rules:
 - ACTION/Escalate means a human must handle this — do not use Prepare-reply together with Escalate
 """
 
-UPDATE_SYSTEM_PROMPT = """You are an email classification assistant for an e-commerce store management team.
+
+def _build_update_system_prompt():
+    """Build the update system prompt with dynamically injected taxonomy values."""
+    taxonomy_block = get_taxonomy_for_prompt()
+    return f"""You are an email classification assistant for an e-commerce store management team.
 An email thread was previously classified. A new message has arrived in this thread.
 Based on the new message and the existing labels, decide if the classification should change.
 
 You must return ONLY valid JSON with the same schema as the original classification.
 If the labels should stay the same, return the existing values. Only change what's needed.
 
+ALLOWED LABEL VALUES (you MUST use ONLY these exact values):
+{taxonomy_block}
+
 Schema:
-{
-  "status": "<one of: New | Processed | Waiting-for-reply | Closed>",
-  "type": "<one of the TYPE/ values without prefix>",
-  "finance": "<one of the FINANCE/ values without prefix, or null if not applicable>",
-  "action": "<one of the ACTION/ values without prefix>",
-  "priority": "<one of: Urgent | Normal | Low>",
+{{
+  "status": "<one of: {' | '.join(TAXONOMY['STATUS'])}>",
+  "type": "<one of: {' | '.join(TAXONOMY['TYPE'])}>",
+  "finance": "<one of: {' | '.join(TAXONOMY['FINANCE'])}, or null if not applicable>",
+  "action": "<one of: {' | '.join(TAXONOMY['ACTION'])}>",
+  "priority": "<one of: {' | '.join(TAXONOMY['PRIORITY'])}>",
   "reason": "<brief explanation of what changed or why labels stay the same>"
-}
+}}
+
+IMPORTANT: Use ONLY the exact label values listed above. Do NOT invent new labels.
 """
 
 
@@ -70,6 +88,10 @@ class GeminiClient:
             
         self.client = genai.Client(api_key=Config.GEMINI_API_KEY)
         self.model_name = "gemini-2.0-flash"
+        
+        # Build prompts dynamically from taxonomy
+        self.system_prompt = _build_system_prompt()
+        self.update_system_prompt = _build_update_system_prompt()
 
     def _parse_response(self, text):
         """Parse and validate LLM JSON response."""
@@ -103,7 +125,7 @@ Return only JSON."""
                 model=self.model_name,
                 contents=user_prompt,
                 config={
-                    "system_instruction": SYSTEM_PROMPT,
+                    "system_instruction": self.system_prompt,
                 }
             )
             
@@ -145,7 +167,7 @@ Should the classification change? Return the full JSON (updated or same)."""
                 model=self.model_name,
                 contents=user_prompt,
                 config={
-                    "system_instruction": UPDATE_SYSTEM_PROMPT,
+                    "system_instruction": self.update_system_prompt,
                 }
             )
             
