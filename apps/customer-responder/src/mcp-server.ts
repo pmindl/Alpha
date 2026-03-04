@@ -2,7 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { listUnreadEmails } from './lib/gmail';
-import { processEmail } from './lib/agent';
+import { processAllEmails, processEmail } from './lib/agent';
 import { findCustomerOrders } from './lib/woocommerce';
 import { createDraft } from './lib/gmail';
 import { GetRecentOrdersSchema, DraftReplySchema } from './lib/mcp-validation';
@@ -23,7 +23,7 @@ async function runServer() {
     const server = new Server(
         {
             name: "customer-responder",
-            version: "1.0.0",
+            version: "2.0.0",
         },
         {
             capabilities: {
@@ -66,7 +66,7 @@ async function runServer() {
             tools: [
                 {
                     name: "process_new_emails",
-                    description: "Trigger the main agent workflow: Check unread emails, lookup context, and draft replies.",
+                    description: "Process emails labeled for drafting (ACTION/Prepare-reply). Extracts entities, gathers context from WooCommerce/Packeta/KB, generates AI draft replies, and applies feedback labels. Returns detailed results with confidence scores.",
                     inputSchema: {
                         type: "object",
                         properties: {},
@@ -103,14 +103,27 @@ async function runServer() {
         switch (request.params.name) {
             case "process_new_emails": {
                 console.error("Tool: process_new_emails triggered");
-                const emails = await listUnreadEmails();
-                let count = 0;
-                for (const email of emails) {
-                    const success = await processEmail(email);
-                    if (success) count++;
-                }
+                const results = await processAllEmails();
+
+                const summary = {
+                    total: results.length,
+                    successful: results.filter(r => r.success).length,
+                    failed: results.filter(r => !r.success).length,
+                    avgConfidence: results.length > 0
+                        ? Math.round(results.reduce((sum, r) => sum + r.confidence, 0) / results.length)
+                        : 0,
+                    results: results.map(r => ({
+                        threadId: r.threadId,
+                        success: r.success,
+                        confidence: r.confidence,
+                        ordersFound: r.ordersFound,
+                        strategies: r.lookupStrategies,
+                        error: r.error,
+                    })),
+                };
+
                 return {
-                    content: [{ type: "text", text: `Processed ${count} emails out of ${emails.length} found.` }]
+                    content: [{ type: "text", text: JSON.stringify(summary, null, 2) }]
                 };
             }
             case "get_recent_orders": {
@@ -139,18 +152,6 @@ async function runServer() {
                 const { threadId, message } = result.data;
                 console.error(`Tool: draft_reply for thread ${threadId}`);
 
-                // Note: We need a 'to' address for createDraft, but in this manual tool usage
-                // we might assume it's replying to the sender of the last message in thread.
-                // However, createDraft requires 'to'. 
-                // For simplicity in this tool, we'll fetch the thread first to find the 'to' address
-                // OR we update the tool schema to require 'to'.
-                // Let's rely on the user providing 'to' in the prompt or just hardcode/find it.
-                // Better approach: Agent logic usually has the email object. 
-                // Setup: let's ask for 'to' address in schema to be safe.
-
-                // Correction: The schema didn't ask for 'to'. 
-                // Let's fetch the thread details using listUnread logic? No that's inefficient.
-                // Let's update the tool to require 'to_email'.
                 return {
                     isError: true,
                     content: [{ type: "text", text: "Tool 'draft_reply' currently requires knowledge of the recipient. Use 'process_new_emails' for automatic handling." }]
@@ -163,7 +164,7 @@ async function runServer() {
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("Customer Responder MCP Server running on stdio");
+    console.error("Customer Responder MCP Server v2.0 running on stdio");
 }
 
 runServer();

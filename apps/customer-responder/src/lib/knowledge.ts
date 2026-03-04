@@ -1,20 +1,38 @@
 import { connect } from '@lancedb/lancedb';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
 
 const DB_URI = process.env.LANCEDB_URI || '../knowledge-ingestor/data/lancedb';
-let genAI: GoogleGenerativeAI | null = null;
-let model: any = null;
 
-function getEmbeddingModel() {
-    if (!model) {
-        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-        if (!apiKey) throw new Error("Missing Gemini API Key for Knowledge Base");
-        genAI = new GoogleGenerativeAI(apiKey);
-        // Using embedding-001 as fallback
-        model = genAI.getGenerativeModel({ model: "embedding-001" });
+// Embedding model configuration
+const EMBEDDING_MODEL = 'gemini-embedding-001';
+const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+
+/**
+ * Call the Gemini embedding API directly (bypasses old SDK version issues).
+ */
+async function getEmbedding(text: string): Promise<number[]> {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!apiKey) throw new Error("Missing Gemini API Key for Knowledge Base");
+
+    const url = `${API_BASE}/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            content: {
+                parts: [{ text }],
+            },
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Embedding API error (${response.status}): ${error}`);
     }
-    return model;
+
+    const data = await response.json();
+    return data.embedding.values;
 }
 
 export interface KnowledgeChunk {
@@ -38,8 +56,7 @@ export async function searchKnowledgeBase(query: string, limit: number = 3): Pro
         const table = await db.openTable('knowledge_base');
 
         // Generate embedding for query
-        const result = await getEmbeddingModel().embedContent(query);
-        const queryVector = result.embedding.values;
+        const queryVector = await getEmbedding(query);
 
         // Search
         const searchResults = await table.vectorSearch(queryVector)
@@ -49,7 +66,7 @@ export async function searchKnowledgeBase(query: string, limit: number = 3): Pro
         return searchResults.map((row: any) => ({
             filename: row.filename,
             content: row.content,
-            score: row._distance // Lower is better for L2, or usage dependent
+            score: row._distance // Lower is better for L2
         }));
 
     } catch (error) {

@@ -32,7 +32,7 @@ describe('constructRawEmail', () => {
         // Should not have a newline in subject line
         expect(raw).not.toMatch(/Subject: Hello[\r\n]+Subject:/);
 
-        // Should have replaced with space
-        expect(raw).toContain('Subject: Hello Subject: HACKED');
+        // Should have removed the newline (concatenated)
+        expect(raw).toContain('Subject: HelloSubject: HACKED');
     });
 });

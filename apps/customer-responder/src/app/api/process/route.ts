@@ -1,34 +1,36 @@
 import { NextResponse } from 'next/server';
-import { listUnreadEmails } from '@/lib/gmail';
-import { processEmail } from '@/lib/agent';
+import { processAllEmails } from '@/lib/agent';
 
 // Prevent caching
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        console.log("🔄 Triggering Email Processing...");
+        console.log("🔄 Triggering Email Processing Pipeline...");
 
-        // 1. Get Unread Emails
-        const emails = await listUnreadEmails();
-        console.log(`Found ${emails.length} unread emails.`);
+        const results = await processAllEmails();
 
-        if (emails.length === 0) {
-            return NextResponse.json({ message: 'No new emails.' });
-        }
+        const summary = {
+            message: results.length === 0 ? 'No emails to process.' : 'Processing complete.',
+            total: results.length,
+            successful: results.filter(r => r.success).length,
+            failed: results.filter(r => !r.success).length,
+            avgConfidence: results.length > 0
+                ? Math.round(results.reduce((sum, r) => sum + r.confidence, 0) / results.length)
+                : 0,
+            results: results.map(r => ({
+                threadId: r.threadId,
+                success: r.success,
+                confidence: r.confidence,
+                ordersFound: r.ordersFound,
+                trackingFound: r.trackingFound,
+                kbArticlesUsed: r.kbArticlesUsed,
+                strategies: r.lookupStrategies,
+                error: r.error || undefined,
+            })),
+        };
 
-        // 2. Process each
-        let processedCount = 0;
-        for (const email of emails) {
-            const success = await processEmail(email);
-            if (success) processedCount++;
-        }
-
-        return NextResponse.json({
-            message: 'Processing complete',
-            found: emails.length,
-            processed: processedCount
-        });
+        return NextResponse.json(summary);
 
     } catch (error) {
         console.error("Critical error in process route:", error);
