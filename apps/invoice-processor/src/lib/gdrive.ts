@@ -1,17 +1,9 @@
 import { google } from 'googleapis';
 import { CompanyConfig } from './types';
+import { getGoogleAuth } from '@alpha/google-auth';
 
-const auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
+const drive = google.drive({ version: 'v3', auth: getGoogleAuth() });
 
-auth.setCredentials({
-    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-});
-
-const drive = google.drive({ version: 'v3', auth });
 
 export async function listFiles(folderId: string) {
     const res = await drive.files.list({

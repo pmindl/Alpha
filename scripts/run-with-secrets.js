@@ -4,6 +4,9 @@
  * Mode 1 (Alpha Monorepo): Loads credentials from the encrypted vault
  * Mode 2 (Standalone):     Falls back to .env.local in the app directory
  * 
+ * Features:
+ * - Pre-flight Google token validation (catches revoked tokens early)
+ * 
  * Usage: node run-with-secrets.js <appId> <command> [args...]
  */
 const { spawn } = require('child_process');
@@ -63,7 +66,6 @@ if (mode !== 'vault') {
         console.warn('   Expected either:');
         console.warn(`   1. ALPHA_MASTER_KEY in ${ENV_FILE} (vault mode)`);
         console.warn(`   2. .env.local in app directory (standalone mode)`);
-        // Don't exit — let the app try to start anyway (some features may work without secrets)
     }
 }
 
@@ -77,13 +79,89 @@ if (mode === 'vault') {
     console.log(`⚡ [NO-SECRETS] Starting [${appId}] without credentials`);
 }
 
-// 4. Spawn Process
-const child = spawn(command, commandArgs, {
-    stdio: 'inherit',
-    env: { ...process.env, ...secrets },
-    shell: true
+// 4. Pre-flight Google token validation
+async function validateGoogleToken() {
+    const refreshToken = secrets.GOOGLE_REFRESH_TOKEN;
+    const clientId = secrets.GOOGLE_CLIENT_ID;
+    const clientSecret = secrets.GOOGLE_CLIENT_SECRET;
+
+    if (!refreshToken || !clientId || !clientSecret) {
+        return; // No Google creds — not every app needs them
+    }
+
+    try {
+        const https = require('https');
+        const querystring = require('querystring');
+
+        const postData = querystring.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token',
+        });
+
+        const result = await new Promise((resolve, reject) => {
+            const req = https.request({
+                hostname: 'oauth2.googleapis.com',
+                path: '/token',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Length': Buffer.byteLength(postData),
+                },
+            }, (res) => {
+                let data = '';
+                res.on('data', (chunk) => data += chunk);
+                res.on('end', () => resolve({ status: res.statusCode, body: data }));
+            });
+            req.on('error', reject);
+            req.write(postData);
+            req.end();
+        });
+
+        const { status, body } = result;
+        const parsed = JSON.parse(body);
+
+        if (status === 200 && parsed.access_token) {
+            console.log(`✅ [AUTH] Google token validated for [${appId}]`);
+        } else if (parsed.error === 'invalid_grant') {
+            console.error(`\n❌ [AUTH] Google refresh token is REVOKED or EXPIRED for [${appId}]`);
+            console.error('   The token stored in the vault is no longer valid.');
+            console.error('   ┌─────────────────────────────────────────────┐');
+            console.error('   │  Run: npx tsx scripts/alpha-auth.ts         │');
+            console.error('   │  to re-authorize and get a new token.       │');
+            console.error('   └─────────────────────────────────────────────┘');
+            process.exit(1);
+        } else {
+            console.warn(`⚠️  [AUTH] Google token check returned: ${parsed.error || 'unknown'}`);
+        }
+    } catch (err) {
+        // Network error — don't block app startup, let it try
+        console.warn(`⚠️  [AUTH] Token pre-check failed (network?): ${err.message}`);
+    }
+}
+
+// 5. Run pre-flight check, then spawn process
+validateGoogleToken().then(() => {
+    const child = spawn(command, commandArgs, {
+        stdio: 'inherit',
+        env: { ...process.env, ...secrets },
+        shell: true
+    });
+
+    child.on('exit', (code) => {
+        process.exit(code ?? 0);
+    });
+}).catch((err) => {
+    console.error(`⚠️  Pre-flight check error: ${err.message}`);
+    // Still spawn the app — don't block on pre-flight failures
+    const child = spawn(command, commandArgs, {
+        stdio: 'inherit',
+        env: { ...process.env, ...secrets },
+        shell: true
+    });
+    child.on('exit', (code) => {
+        process.exit(code ?? 0);
+    });
 });
 
-child.on('exit', (code) => {
-    process.exit(code ?? 0);
-});

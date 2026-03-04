@@ -1,18 +1,10 @@
 import { google } from 'googleapis';
 import { uploadFile } from './gdrive';
 import { detectCompany, getCompanies } from './companies';
+import { getGoogleAuth } from '@alpha/google-auth';
 
-const auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
+const gmail = google.gmail({ version: 'v1', auth: getGoogleAuth() });
 
-auth.setCredentials({
-    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-});
-
-const gmail = google.gmail({ version: 'v1', auth });
 
 export async function checkEmails() {
     const label = process.env.GMAIL_LABEL || 'INBOX';

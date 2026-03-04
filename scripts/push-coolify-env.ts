@@ -15,7 +15,8 @@ const APPS = [
     { name: 'master', id: 'master', uuid: 'ncgwsg004s48o0g0osg48wgg' },
     { name: 'invoice-downloader', id: 'invoice-downloader', uuid: 'd8s8g4088wgsww8kgg8g4s44' },
     { name: 'invoice-processor', id: 'invoice-processor', uuid: 'jc4s48ckw4skw4wwc4o804gs' },
-    { name: 'customer-responder', id: 'customer-responder', uuid: 'dcws04g00ckw0ws0ogsw0k8s' }
+    { name: 'customer-responder', id: 'customer-responder', uuid: 'dcws04g00ckw0ws0ogsw0k8s' },
+    { name: 'gmail-labeler', id: 'gmail-labeler', uuid: 'j88ssos8gw8wo4gsgk0gwccw' }
 ];
 
 async function updateCoolifyEnv(appUuid: string, key: string, value: string) {
