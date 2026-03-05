@@ -113,7 +113,7 @@ function extractLabelsFromThread(messages: any[], labelMap: Record<string, strin
         finance: null,
     };
 
-    for (const lid of allLabelIds) {
+    for (const lid of Array.from(allLabelIds)) {
         const name = idToName[lid];
         if (!name) continue;
 

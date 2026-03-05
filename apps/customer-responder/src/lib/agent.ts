@@ -157,7 +157,7 @@ export async function processEmail(email: EmailMessage): Promise<ProcessingResul
                 orderContext += `  Items: ${items}\n`;
             }
             // Attach tracking if available
-            for (const [tn, status] of trackingResults) {
+            for (const [tn, status] of Array.from((trackingResults || new Map()).entries())) {
                 orderContext += `  Tracking ${tn}: ${status.statusText || status.statusCode} (${status.dateTime || 'unknown date'})\n`;
             }
         }

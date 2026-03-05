@@ -30,8 +30,9 @@ These rules MUST be followed by the agent to prevent infinite polling loops:
 
 ## Steps
 
-1. Make and verify code changes locally
-
+1. Make and verify code changes locally.
+   - **CRITICAL:** Run `npx turbo run build --filter=<app-name>` locally to verify no TypeScript or linting errors exist. Do NOT commit if this fails.
+   - If you added new dependencies, verify `package-lock.json` is updated and committed.
 2. Commit and push to monorepo:
 ```bash
 git add apps/<app-name>/

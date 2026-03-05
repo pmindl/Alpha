@@ -159,10 +159,10 @@ export async function extractEntities(
 
     // Merge: prefer regex results where both have data, add AI-only results
     return {
-        orderNumbers: [...new Set([...regexResults.orderNumbers, ...aiResults.orderNumbers])],
-        trackingNumbers: [...new Set([...regexResults.trackingNumbers, ...aiResults.trackingNumbers])],
-        emails: [...new Set([...regexResults.emails, ...aiResults.emails])],
-        phones: [...new Set([...regexResults.phones, ...aiResults.phones])],
+        orderNumbers: Array.from(new Set([...regexResults.orderNumbers, ...aiResults.orderNumbers])),
+        trackingNumbers: Array.from(new Set([...regexResults.trackingNumbers, ...aiResults.trackingNumbers])),
+        emails: Array.from(new Set([...regexResults.emails, ...aiResults.emails])),
+        phones: Array.from(new Set([...regexResults.phones, ...aiResults.phones])),
         customerName: regexResults.customerName || aiResults.customerName,
     };
 }
