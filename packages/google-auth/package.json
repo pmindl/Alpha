@@ -1,0 +1,30 @@
+{
+    "name": "@alpha/google-auth",
+    "version": "0.1.0",
+    "private": false,
+    "description": "Alpha ecosystem shared Google OAuth2 authentication — dual-mode (vault + standalone)",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pmindl/Alpha.git",
+        "directory": "packages/google-auth"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "scripts": {
+        "lint": "eslint .",
+        "test": "vitest run",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "googleapis": "^144.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.12.12",
+        "typescript": "^5.4.5",
+        "vitest": "^4.0.18"
+    }
+}
