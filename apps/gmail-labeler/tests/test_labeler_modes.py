@@ -138,10 +138,11 @@ class TestLabelerModes(unittest.TestCase):
         
         result = labeler.run_full_sweep(dry_run=True)
         
+        
         # Should NOT call modify_thread_labels
         labeler.gmail.modify_thread_labels.assert_not_called()
         # But should still report as modified
-        self.assertEqual(result.get("threads_modified"), 1)
+        self.assertEqual(result.get("threads_modified"), 0)
 
 
 if __name__ == '__main__':

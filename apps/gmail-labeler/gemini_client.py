@@ -50,8 +50,9 @@ Rules:
 - For FINANCE emails, always set an appropriate FINANCE label
 - ACTION/Prepare-reply means the LLM draft agent will write a response
 - ACTION/Escalate means a human must handle this — do not use Prepare-reply together with Escalate
+- CRITICAL: Do NOT use ACTION/Prepare-reply for automated system notifications, order confirmations (e.g., "Nová objednávka", "[Fotoliečba.sk] Nová objednávka"), marketing reports (e.g., PPC Signals, Heureka, Shoptet analytics), or newsletters. For these, use ACTION/No-action or ACTION/Archive.
+- CRITICAL: DO use ACTION/Prepare-reply if a human customer replies to an automated notification asking a question, disputing it, or requesting support.
 """
-
 
 def _build_update_system_prompt():
     """Build the update system prompt with dynamically injected taxonomy values."""
@@ -68,15 +69,17 @@ ALLOWED LABEL VALUES (you MUST use ONLY these exact values):
 
 Schema:
 {{
-  "status": "<one of: {' | '.join(TAXONOMY['STATUS'])}>",
-  "type": "<one of: {' | '.join(TAXONOMY['TYPE'])}>",
-  "finance": "<one of: {' | '.join(TAXONOMY['FINANCE'])}, or null if not applicable>",
-  "action": "<one of: {' | '.join(TAXONOMY['ACTION'])}>",
-  "priority": "<one of: {' | '.join(TAXONOMY['PRIORITY'])}>",
+  "status": "<one of: {{' | '.join(TAXONOMY['STATUS'])}}>",
+  "type": "<one of: {{' | '.join(TAXONOMY['TYPE'])}}>",
+  "finance": "<one of: {{' | '.join(TAXONOMY['FINANCE'])}}, or null if not applicable>",
+  "action": "<one of: {{' | '.join(TAXONOMY['ACTION'])}}>",
+  "priority": "<one of: {{' | '.join(TAXONOMY['PRIORITY'])}}>",
   "reason": "<brief explanation of what changed or why labels stay the same>"
 }}
 
 IMPORTANT: Use ONLY the exact label values listed above. Do NOT invent new labels.
+CRITICAL: Do NOT use ACTION/Prepare-reply for automated system notifications, new orders, marketing reports, or newsletters. Use ACTION/No-action or ACTION/Archive.
+CRITICAL: DO use ACTION/Prepare-reply if a human customer replies to an automated notification asking a question, disputing it, or requesting support.
 """
 
 
