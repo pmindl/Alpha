@@ -140,17 +140,17 @@ export async function listEmailsForDrafting(): Promise<EmailMessage[]> {
         const draftComposedLabelId = labelMap[LABELS.DRAFT_COMPOSED];
 
         // Build query: must have Prepare-reply action, must NOT have DRAFT/Composed
-        let query = `is:unread`;
+        let query = '';
         if (prepareReplyLabelId) {
-            query = `label:${LABELS.ACTION_PREPARE_REPLY.replace('/', '-')} is:unread`;
+            query = `label:${LABELS.ACTION_PREPARE_REPLY.replace('/', '-')}`;
             // Also exclude already-composed drafts
             if (draftComposedLabelId) {
                 query += ` -label:${LABELS.DRAFT_COMPOSED.replace('/', '-')}`;
             }
         } else {
             // Fallback: if labeler hasn't run yet, use basic inbox query
-            console.warn('⚠️ ACTION/Prepare-reply label not found. Falling back to unread inbox.');
-            query = 'label:INBOX is:unread';
+            console.warn('⚠️ ACTION/Prepare-reply label not found. Falling back to INBOX.');
+            query = 'label:INBOX';
         }
 
         const res = await getGmailClient().users.messages.list({
