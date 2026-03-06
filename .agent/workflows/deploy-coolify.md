@@ -31,6 +31,11 @@ These rules MUST be followed by the agent to prevent infinite polling loops:
 ## Steps
 
 1. Make and verify code changes locally.
+   - **Next.js Pre-flight Checks (CRITICAL):**
+     - Ensure `next.config.mjs` has `output: "standalone"`
+     - Ensure `next.config.mjs` ignores build errors: `eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: true }`
+     - Ensure an empty `public/.gitkeep` file exists to prevent Docker `COPY` failures
+     - Ensure the `Dockerfile` uses a Debian-based image (e.g., `node:20-slim`) instead of Alpine if the app uses native modules like LanceDB
    - **CRITICAL:** Run `npx turbo run build --filter=<app-name>` locally to verify no TypeScript or linting errors exist. Do NOT commit if this fails.
    - If you added new dependencies, verify `package-lock.json` is updated and committed.
 2. Commit and push to monorepo:
@@ -79,6 +84,10 @@ node -e "fetch('http://157.180.124.79:8000/api/v1/applications/<UUID>/logs', {he
 | `npm ci` fails | No `package-lock.json` in sub-app dir | Use `npm install` instead |
 | `npm install` timeout/OOM | Node deps not needed in production | Remove `npm install` from `nixpacks.toml` entirely if app doesn't need it |
 | `Deployment already queued` | Old failed deploy blocking queue | User must cancel stuck deploys in Coolify GUI > Deployments tab |
+| Next.js Docker missing `standalone` | `output: "standalone"` not in `next.config.mjs` | Add `output: "standalone"` to next config |
+| Docker COPY missing `public/` | Next.js app has no `public` folder | Create an empty `public/.gitkeep` file |
+| Next.js build OOM on VPS | TS/ESLint checks run out of memory | Add `eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: true }` |
+| Modules (e.g. LanceDB) missing native binaries | Docker base image is Alpine (musl) | Use `node:20-slim` (Debian/glibc) instead of `node:xx-alpine` in Dockerfile |
 
 ## Nixpacks.toml Standards
 
