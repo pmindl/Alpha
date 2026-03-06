@@ -67,8 +67,9 @@ RUN useradd --system --uid 1001 --gid 1001 nextjs
 COPY --from=builder /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=builder /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 
-# Copy public directory if it exists (not all apps have one)
-COPY --from=builder /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
+# Copy public directory and data if they exist (using wildcard trick to make it optional)
+COPY --from=builder /app/apps/${APP_NAME}/publi[c] ./apps/${APP_NAME}/public/
+COPY --from=builder /app/apps/${APP_NAME}/dat[a] ./apps/${APP_NAME}/data/
 
 USER nextjs
 

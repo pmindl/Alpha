@@ -1,7 +1,9 @@
 import { connect } from '@lancedb/lancedb';
 import path from 'path';
 
-const DB_URI = process.env.LANCEDB_URI || '../knowledge-ingestor/data/lancedb';
+// Use the local data folder (copied by Docker or Git) as the primary knowledge base.
+// In Coolify, setting LANCEDB_URI=/app/data/lancedb can be used if an external volume is mounted.
+const DB_URI = process.env.LANCEDB_URI || path.join(process.cwd(), 'data/lancedb');
 
 // Embedding model configuration
 const EMBEDDING_MODEL = 'gemini-embedding-001';
