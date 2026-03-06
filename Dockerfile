@@ -14,7 +14,7 @@
 #   Environment variable: APP_PORT=<port>
 # ============================================================
 
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 
 # ── Stage 1: Install dependencies ──
 FROM base AS deps
@@ -60,8 +60,8 @@ ARG APP_PORT=3000
 ENV NODE_ENV=production
 ENV PORT=${APP_PORT}
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 --gid 1001 nextjs
 
 # Copy the standalone output
 COPY --from=builder /app/apps/${APP_NAME}/.next/standalone ./
