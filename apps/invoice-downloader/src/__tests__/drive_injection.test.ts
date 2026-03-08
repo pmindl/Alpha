@@ -1,7 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { escapeDriveQueryString } from '../lib/utils';
-import { findFile } from '../lib/drive';
+import { findFile } from '../lib/gdrive';
 
 // Use vi.hoisted to create the mock function so it can be used inside vi.mock factory
 const { mockList } = vi.hoisted(() => {
@@ -22,9 +22,11 @@ vi.mock('googleapis', () => {
     };
 });
 
-// Mock auth (because it's imported in drive.ts)
-vi.mock('../lib/auth', () => ({
-    oauth2Client: {}
+// Mock auth (because it's imported in gdrive.ts)
+vi.mock('@alpha/google-auth', () => ({
+    getGoogleAuth: vi.fn(() => ({
+        getAccessToken: vi.fn().mockResolvedValue({ token: 'mock-token' })
+    }))
 }));
 
 describe('Drive Injection Protection', () => {

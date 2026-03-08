@@ -1,56 +1,38 @@
 /**
  * @alpha/google-auth — Shared Google OAuth2 for all Alpha sub-apps.
- * 
- * Dual-mode: reads credentials from env vars.
- * - Vault Mode:      run-with-secrets.js injects env vars from encrypted vault
- * - Standalone Mode: dotenv loads from .env.local
- * 
- * The googleapis library handles access token refresh automatically
- * when a valid refresh_token is provided.
  */
 
 import { google, Auth } from 'googleapis';
 
 // ── Combined scopes for all sub-apps ────────────────────────
 export const GOOGLE_SCOPES = [
-    'https://www.googleapis.com/auth/gmail.modify',      // gmail-labeler, customer-responder
-    'https://www.googleapis.com/auth/gmail.readonly',     // invoice-processor
-    'https://www.googleapis.com/auth/drive.readonly',     // invoice-processor (read files)
-    'https://www.googleapis.com/auth/drive.file',         // invoice-processor (upload files)
+    'https://www.googleapis.com/auth/gmail.modify',
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/drive.file',
 ];
 
 // ── Singleton auth client ───────────────────────────────────
 let _authClient: Auth.OAuth2Client | null = null;
 
-/**
- * Get a configured Google OAuth2 client.
- * 
- * Reads from environment variables (dual-mode compatible):
- * - GOOGLE_CLIENT_ID
- * - GOOGLE_CLIENT_SECRET  
- * - GOOGLE_REFRESH_TOKEN
- * - GOOGLE_REDIRECT_URI (optional)
- * 
- * The client automatically refreshes access tokens using the refresh_token.
- * If the refresh token is revoked, API calls will throw an error.
- */
 export function getGoogleAuth(): Auth.OAuth2Client {
     if (_authClient) return _authClient;
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
+
+    console.log('[google-auth] Initializing new auth client...');
+    console.log('[google-auth] Client ID starts with:', clientId?.substring(0, 10));
+    console.log('[google-auth] Refresh Token starts with:', refreshToken?.substring(0, 10));
 
     if (!clientId || !clientSecret || !refreshToken) {
         const missing = [];
         if (!clientId) missing.push('GOOGLE_CLIENT_ID');
         if (!clientSecret) missing.push('GOOGLE_CLIENT_SECRET');
         if (!refreshToken) missing.push('GOOGLE_REFRESH_TOKEN');
-        throw new Error(
-            `[google-auth] Missing credentials: ${missing.join(', ')}. ` +
-            `Run "npx tsx scripts/alpha-auth.ts" to authorize, or check your .env.local`
-        );
+        throw new Error(`[google-auth] Missing credentials: ${missing.join(', ')}`);
     }
 
     _authClient = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
@@ -59,31 +41,18 @@ export function getGoogleAuth(): Auth.OAuth2Client {
     return _authClient;
 }
 
-/**
- * Get a pre-configured Gmail API client.
- */
 export function getGmail() {
     return google.gmail({ version: 'v1', auth: getGoogleAuth() });
 }
 
-/**
- * Get a pre-configured Google Drive API client.
- */
 export function getDrive() {
     return google.drive({ version: 'v3', auth: getGoogleAuth() });
 }
 
-/**
- * Reset the cached auth client (for testing or re-initialization).
- */
 export function resetGoogleAuth(): void {
     _authClient = null;
 }
 
-/**
- * Validate that the current refresh token is still valid.
- * Returns { valid: true, email } or { valid: false, error }.
- */
 export async function validateGoogleAuth(): Promise<{
     valid: boolean;
     email?: string;
@@ -91,9 +60,9 @@ export async function validateGoogleAuth(): Promise<{
 }> {
     try {
         const auth = getGoogleAuth();
+        console.log('[google-auth] Validating/Refreshing token...');
         const { credentials } = await auth.refreshAccessToken();
         if (credentials.access_token) {
-            // Optionally fetch user email
             const gmail = google.gmail({ version: 'v1', auth });
             const profile = await gmail.users.getProfile({ userId: 'me' });
             return { valid: true, email: profile.data.emailAddress || undefined };
@@ -101,12 +70,7 @@ export async function validateGoogleAuth(): Promise<{
         return { valid: false, error: 'No access token returned' };
     } catch (error: any) {
         const msg = error?.message || String(error);
-        if (msg.includes('invalid_grant') || msg.includes('Token has been expired or revoked')) {
-            return {
-                valid: false,
-                error: 'Refresh token revoked. Run "npx tsx scripts/alpha-auth.ts" to re-authorize.'
-            };
-        }
+        console.error('[google-auth] Validation Failed:', msg);
         return { valid: false, error: msg };
     }
 }

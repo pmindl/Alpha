@@ -1,32 +1,28 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ParsedInvoice } from './types';
-
-
+import { getCompanies } from './companies';
 
 /**
  * Parses an invoice file (text or image/PDF) using Google Gemini AI.
- * 
- * @param textOrImage - The input data. Can be a string (text) or a Buffer (file data).
- * @param mimeType - The MIME type of the input. Defaults to 'text/plain'.
- * @returns A promise resolving to the structured ParsedInvoice object.
- * @throws Error if the AI response does not contain valid JSON.
  */
 export async function parseInvoice(textOrImage: string | Buffer, mimeType: string = 'text/plain'): Promise<ParsedInvoice> {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
+    const companies = getCompanies();
+    const companiesPrompt = companies.map(c => `- ${c.id} = ${c.name} (ICO: ${c.ico})`).join('\n');
+
     const prompt = `
 System: You are an accounting AI. Analyze this document and extract invoice data.
 
-Known buyer companies:
-- firma_a = Lumegro s.r.o. (ICO: 08827877)
-- firma_b = Lumenica Derm & Med, s.r.o. (ICO: 17904544)
+Known buyer companies (Our legal entities):
+${companiesPrompt}
 
 Return ONLY valid JSON matching this schema:
 {
   "is_invoice": boolean,
   "confidence": 0-100,
-  "my_company_identifier": "firma_a" | "firma_b" | "unknown",
+  "my_company_identifier": "${companies.map(c => c.id).join('" | "')}" | "unknown",
   "supplier": { "name", "ico", "dic", "address" },
   "buyer": { "name", "ico", "dic" },
   "invoice": { "number", "variable_symbol", "date_issued", "date_due", "currency" },

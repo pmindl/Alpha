@@ -8,27 +8,32 @@ const lookup = promisify(dns.lookup);
  * Validates a URL to prevent SSRF attacks.
  * Checks protocol and resolves hostname to ensure it doesn't point to private/reserved IP ranges.
  */
+/**
+ * Validates a hostname and returns its public IP if safe.
+ */
+export async function validateAndResolvePublicIp(hostname: string): Promise<string | null> {
+    try {
+        const { address } = await lookup(hostname);
+        if (address && isPublicIp(address)) {
+            return address;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Validates a URL to prevent SSRF attacks.
+ */
 export async function isValidUrl(urlString: string): Promise<boolean> {
     try {
         const url = new URL(urlString);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
 
-        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-            return false;
-        }
-
-        // Remove brackets from IPv6 literals for lookup
-        let hostname = url.hostname;
-        if (hostname.startsWith('[') && hostname.endsWith(']')) {
-            hostname = hostname.slice(1, -1);
-        }
-
-        const { address } = await lookup(hostname);
-
-        if (!address) return false;
-
-        return isPublicIp(address);
-    } catch (error) {
-        // invalid URL or DNS lookup failed
+        const ip = await validateAndResolvePublicIp(url.hostname);
+        return !!ip;
+    } catch {
         return false;
     }
 }
@@ -97,16 +102,16 @@ function isPublicIPv6(ip: string): boolean {
         // But usually dns.lookup returns dotted decimal for the mapped part.
         // Let's implement hex parsing for mapped addresses just in case.
         if (ipv4Part.includes(':')) {
-             const parts = ipv4Part.split(':');
-             if (parts.length === 2) {
-                 const high = parseInt(parts[0], 16);
-                 const low = parseInt(parts[1], 16);
-                 const p1 = (high >> 8) & 0xFF;
-                 const p2 = high & 0xFF;
-                 const p3 = (low >> 8) & 0xFF;
-                 const p4 = low & 0xFF;
-                 return isPublicIPv4(`${p1}.${p2}.${p3}.${p4}`);
-             }
+            const parts = ipv4Part.split(':');
+            if (parts.length === 2) {
+                const high = parseInt(parts[0], 16);
+                const low = parseInt(parts[1], 16);
+                const p1 = (high >> 8) & 0xFF;
+                const p2 = high & 0xFF;
+                const p3 = (low >> 8) & 0xFF;
+                const p4 = low & 0xFF;
+                return isPublicIPv4(`${p1}.${p2}.${p3}.${p4}`);
+            }
         }
     }
 
@@ -130,11 +135,11 @@ function isPublicIPv6(ip: string): boolean {
 
     // IPv4-mapped check again for robustness (e.g. at the end of a long string)
     if (ip.includes('.')) {
-         const lastColon = ip.lastIndexOf(':');
-         if (lastColon !== -1) {
+        const lastColon = ip.lastIndexOf(':');
+        if (lastColon !== -1) {
             const ipv4Part = ip.substring(lastColon + 1);
             return isPublicIPv4(ipv4Part);
-         }
+        }
     }
 
     return true;

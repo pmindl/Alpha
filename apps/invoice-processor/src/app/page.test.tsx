@@ -13,8 +13,7 @@ vi.mock('../lib/mcp', () => ({
 
 // Mock child components
 vi.mock('@/components/Dashboard', () => ({
-    StatsCards: () => <div data-testid="stats-cards" />,
-    ActionBar: () => <div data-testid="action-bar" />,
+    DashboardHeader: () => <div data-testid="dashboard-header" />,
 }))
 vi.mock('@/components/InvoiceTable', () => ({
     InvoiceTable: () => <div data-testid="invoice-table" />,
@@ -24,8 +23,6 @@ vi.mock('@/components/UploadZone', () => ({
 }))
 
 test('Page renders correctly', async () => {
-    // Page is an async Server Component, so we must await it
-    const Result = await Page()
-    render(Result)
-    expect(screen.getByRole('heading', { level: 1, name: 'Invoice Processor' })).toBeDefined()
+    render(<Page />)
+    expect(screen.getByTestId('dashboard-header')).toBeDefined()
 })

@@ -6,10 +6,12 @@ export const dynamic = 'force-dynamic'; // Ensure this route is never cached
 export async function GET(request: Request) {
     // Simple API key check for cron usage
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.APP_API_KEY}`) {
+    // Require CRON_SECRET or APP_API_KEY for security
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && authHeader !== `Bearer ${process.env.APP_API_KEY}`) {
         // Also check query param for easier manual testing
         const { searchParams } = new URL(request.url);
-        if (searchParams.get('key') !== process.env.APP_API_KEY) {
+        const key = searchParams.get('key');
+        if (key !== process.env.CRON_SECRET && key !== process.env.APP_API_KEY) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
     }

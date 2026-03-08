@@ -1,27 +1,36 @@
 import { NextResponse } from 'next/server';
 
-// Proxy route to trigger protected actions from the dashboard without exposing keys to client
 export async function POST(request: Request) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
-    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+
+    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3002';
     const apiKey = process.env.APP_API_KEY || '';
 
+    if (!action) {
+        return NextResponse.json({ error: 'Missing action' }, { status: 400 });
+    }
+
     try {
+        let res;
         if (action === 'process') {
-            await fetch(`${baseUrl}/api/process`, {
+            res = await fetch(`${baseUrl}/processor/api/process`, {
                 method: 'POST',
                 headers: { 'x-api-key': apiKey }
             });
         } else if (action === 'export') {
-            await fetch(`${baseUrl}/api/export`, {
+            res = await fetch(`${baseUrl}/processor/api/export`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${apiKey}` }
             });
+        } else {
+            return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
 
-        return NextResponse.json({ success: true });
-    } catch (err) {
-        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+        const data = await res.json();
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error(`Trigger API Error (${action}):`, error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

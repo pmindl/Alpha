@@ -79,14 +79,15 @@ export async function parsePacketaInvoice(buffer: Buffer): Promise<ParsedInvoice
     }
 
     // Known Buyer/Seller Logic (Hardcoded/Inferred)
-    // The n8n script doesn't explicitly parse supplier details other than bank info. 
-    // We can infer Zásilkovna from context or hardcode if we know it's them.
-    // For now, let's try to extract ICO/DIC if possible, or leave them for user to fill/AI to fallback?
-    // No, we want to replace AI. So we should provide robust defaults for Zásilkovna.
+
+    // Attempt to detect our company (Lumenica vs Lumegro) directly from text
+    let buyerCompanyId = "unknown";
+    if (/Lumegro/i.test(text) || /08827877/.test(text)) buyerCompanyId = "firma_a";
+    if (/Lumenica/i.test(text) || /17904544/.test(text)) buyerCompanyId = "firma_b";
 
     const supplier = {
         name: "Zásilkovna s.r.o.", // or Packeta
-        ico: "28408306", // Generic Zásilkovna ICO, potentially extract dynamic if needed
+        ico: "28408306",
         dic: "CZ28408306",
         address: "Českomoravská 2408/1a, 190 00 Praha 9"
     };
@@ -172,10 +173,10 @@ export async function parsePacketaInvoice(buffer: Buffer): Promise<ParsedInvoice
     return {
         is_invoice: true,
         confidence: 100, // Deterministic parser
-        my_company_identifier: "unknown", // To be filled by matching logic if needed -> or passed from context
+        my_company_identifier: buyerCompanyId,
         supplier: supplier,
         buyer: {
-            name: "Lumenica s.r.o.", // Could infer or leave empty
+            name: buyerCompanyId === 'firma_b' ? 'Lumenica s.r.o.' : (buyerCompanyId === 'firma_a' ? 'Lumegro' : 'Unknown'),
             ico: "",
             dic: ""
         },

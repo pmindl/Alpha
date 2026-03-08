@@ -2,11 +2,11 @@ export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
         const cron = await import('node-cron');
 
-        // Poll Gmail every 5 minutes
-        cron.schedule('*/5 * * * *', async () => {
+        // Poll Gmail every 15 minutes (less frequent to save API quota)
+        cron.schedule('*/15 * * * *', async () => {
             try {
-                const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
-                await fetch(`${baseUrl}/api/ingest/email`, {
+                const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3002';
+                await fetch(`${baseUrl}/processor/api/ingest/email`, {
                     headers: { 'Authorization': `Bearer ${process.env.APP_API_KEY}` }
                 });
             } catch (err) {
@@ -14,12 +14,11 @@ export async function register() {
             }
         });
 
-        // Process new files every 3 minutes
-        cron.schedule('*/3 * * * *', async () => {
+        // Process new files every 5 minutes
+        cron.schedule('*/5 * * * *', async () => {
             try {
-                const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
-                // Note: process route uses x-api-keyheader
-                await fetch(`${baseUrl}/api/process`, {
+                const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3002';
+                await fetch(`${baseUrl}/processor/api/process`, {
                     method: 'POST',
                     headers: { 'x-api-key': process.env.APP_API_KEY || '' }
                 });
@@ -28,11 +27,11 @@ export async function register() {
             }
         });
 
-        // Export pending invoices every 10 minutes
-        cron.schedule('*/10 * * * *', async () => {
+        // Export pending invoices every 30 minutes
+        cron.schedule('*/30 * * * *', async () => {
             try {
-                const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
-                await fetch(`${baseUrl}/api/export`, {
+                const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3002';
+                await fetch(`${baseUrl}/processor/api/export`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${process.env.APP_API_KEY}` }
                 });

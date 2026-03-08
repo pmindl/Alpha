@@ -60,6 +60,14 @@ export async function processCompany(company: CompanyConfig) {
                 }
 
                 // 5. Logic checks
+                let finalCompanyId = company.id;
+                if (parsed.my_company_identifier && parsed.my_company_identifier !== 'unknown') {
+                    const validCompany = getCompanies().find(c => c.id === parsed.my_company_identifier);
+                    if (validCompany) {
+                        finalCompanyId = validCompany.id;
+                    }
+                }
+
                 let status = 'PENDING';
                 let errorMessage = '';
 
@@ -93,7 +101,7 @@ export async function processCompany(company: CompanyConfig) {
                 const newInvoice = await db.invoice.create({
                     data: {
                         status,
-                        company: company.id,
+                        company: finalCompanyId,
                         supplierName: parsed.supplier.name || 'Unknown',
                         supplierIco: parsed.supplier.ico,
                         supplierDic: parsed.supplier.dic,
@@ -148,20 +156,25 @@ export async function processCompany(company: CompanyConfig) {
 }
 
 export async function POST(request: Request) {
-    // Check auth
-    const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== process.env.APP_API_KEY) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const companies = getCompanies();
-    const summary: Record<string, any> = {};
-
-    for (const company of companies) {
-        if (company.gdriveFolderId) {
-            summary[company.id] = await processCompany(company);
+    try {
+        // Check auth
+        const apiKey = request.headers.get('x-api-key');
+        if (apiKey !== process.env.APP_API_KEY) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-    }
 
-    return NextResponse.json({ success: true, summary });
+        const companies = getCompanies();
+        const summary: Record<string, any> = {};
+
+        for (const company of companies) {
+            if (company.gdriveFolderId) {
+                summary[company.id] = await processCompany(company);
+            }
+        }
+
+        return NextResponse.json({ success: true, summary });
+    } catch (error) {
+        console.error('Process API error:', error);
+        return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    }
 }

@@ -1,160 +1,156 @@
 import { google } from 'googleapis';
-import { EmailData, AttachmentMetadata } from './types';
-import { oauth2Client } from './auth';
+import { validateGoogleAuth, getGoogleAuth } from '@alpha/google-auth';
+import { uploadFile } from './gdrive';
+import { detectCompany, getCompanies } from './companies';
 
-// Initialize Gmail API client
-const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+async function getGmailClient() {
+    const auth = getGoogleAuth();
+    const { token } = await auth.getAccessToken();
+    if (!token) {
+        throw new Error('Failed to obtain Google access token');
+    }
+    return google.gmail({ version: 'v1', auth });
+}
 
 export async function getProfile() {
-    try {
-        const res = await gmail.users.getProfile({ userId: 'me' });
-        return res.data;
-    } catch (e: any) {
-        console.error('Error getting profile:', e.message);
-        return null; // Return null on error so caller can handle
-    }
+    const gmail = await getGmailClient();
+    const res = await gmail.users.getProfile({ userId: 'me' });
+    return res.data;
 }
 
-/**
- * Lists messages matching a query.
- * Default query: 'label:INBOX -label:PROCESSED'
- */
-export async function listMessages(query: string = 'label:INBOX -label:PROCESSED', maxResults: number = 10) {
-    try {
-        const res = await gmail.users.messages.list({
-            userId: 'me',
-            q: query,
-            maxResults,
-        });
-        return res.data.messages || [];
-    } catch (error) {
-        console.error('Error listing messages:', error);
-        throw error;
-    }
+export async function listMessages(query: string, limit: number = 10) {
+    const gmail = await getGmailClient();
+    const res = await gmail.users.messages.list({
+        userId: 'me',
+        q: query,
+        maxResults: limit,
+    });
+    return res.data.messages || [];
 }
 
-/**
- * Retrieves full message details.
- */
-export async function getMessage(messageId: string): Promise<EmailData | null> {
-    try {
-        const res = await gmail.users.messages.get({
-            userId: 'me',
-            id: messageId,
-            format: 'full',
-        });
+export async function getMessage(id: string) {
+    const gmail = await getGmailClient();
+    const res = await gmail.users.messages.get({
+        userId: 'me',
+        id,
+    });
 
-        const msg = res.data;
-        if (!msg.payload) return null;
+    const payload = res.data.payload;
+    const headers = payload?.headers || [];
+    const subject = headers.find(h => h.name === 'Subject')?.value || '';
+    const from = headers.find(h => h.name === 'From')?.value || '';
+    const date = headers.find(h => h.name === 'Date')?.value || '';
 
-        const headers = msg.payload.headers;
-        const subject = headers?.find((h) => h.name === 'Subject')?.value || '(No Subject)';
-        const sender = headers?.find((h) => h.name === 'From')?.value || '(Unknown Sender)';
-        const date = headers?.find((h) => h.name === 'Date')?.value || new Date().toISOString();
+    // Extract attachments metadata
+    const attachments = [];
+    const parts = payload?.parts || [];
 
-        let body = '';
-        // Body extraction logic
-        if (msg.payload.body?.data) {
-            body = Buffer.from(msg.payload.body.data, 'base64').toString('utf-8');
-        } else if (msg.payload.parts) {
-            const textPart = msg.payload.parts.find(p => p.mimeType === 'text/plain');
-            if (textPart?.body?.data) {
-                body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
-            } else {
-                const htmlPart = msg.payload.parts.find(p => p.mimeType === 'text/html');
-                if (htmlPart?.body?.data) {
-                    body = Buffer.from(htmlPart.body.data, 'base64').toString('utf-8');
-                    body = body.replace(/<[^>]*>?/gm, '');
-                }
+    // Recursive search for attachments in nested parts
+    function findAttachments(parts: any[]) {
+        for (const part of parts) {
+            if (part.filename && part.body?.attachmentId) {
+                attachments.push({
+                    id: part.body.attachmentId,
+                    filename: part.filename,
+                    mimeType: part.mimeType,
+                });
             }
+            if (part.parts) findAttachments(part.parts);
         }
-
-        const snippet = msg.snippet || '';
-
-        // Extract attachments
-        const attachments: AttachmentMetadata[] = [];
-        extractAttachments(msg.payload, attachments);
-
-        return {
-            id: msg.id || messageId,
-            threadId: msg.threadId || '',
-            subject,
-            sender,
-            date,
-            body,
-            snippet,
-            attachments
-        };
-    } catch (error) {
-        console.error(`Error getting message ${messageId}:`, error);
-        return null;
     }
-}
+    findAttachments(parts);
 
-function extractAttachments(part: any, list: AttachmentMetadata[]) {
-    if (part.filename && part.filename.length > 0 && part.body && part.body.attachmentId) {
-        list.push({
-            id: part.body.attachmentId,
-            filename: part.filename,
-            mimeType: part.mimeType,
-            size: part.body.size || 0
-        });
-    }
-    if (part.parts) {
-        part.parts.forEach((p: any) => extractAttachments(p, list));
-    }
+    return {
+        id: res.data.id,
+        subject,
+        sender: from,
+        date: new Date(date).toISOString(),
+        attachments,
+        body: payload?.body?.data ? Buffer.from(payload.body.data, 'base64').toString() : '',
+    };
 }
 
 export async function getAttachment(messageId: string, attachmentId: string) {
+    const gmail = await getGmailClient();
     const res = await gmail.users.messages.attachments.get({
         userId: 'me',
         messageId,
-        id: attachmentId
+        id: attachmentId,
     });
-    return res.data; // contains .data (base64)
+    return res.data;
+}
+
+export async function addLabel(messageId: string, labelName: string) {
+    const gmail = await getGmailClient();
+
+    // First find label ID
+    const labelsRes = await gmail.users.labels.list({ userId: 'me' });
+    let labelId = labelsRes.data.labels?.find(l => l.name === labelName)?.id;
+
+    if (!labelId) {
+        // Create label if not exists
+        const createRes = await gmail.users.labels.create({
+            userId: 'me',
+            requestBody: {
+                name: labelName,
+                labelListVisibility: 'labelShow',
+                messageListVisibility: 'show',
+            },
+        });
+        labelId = createRes.data.id;
+    }
+
+    await gmail.users.messages.modify({
+        userId: 'me',
+        id: messageId,
+        requestBody: {
+            addLabelIds: [labelId],
+            removeLabelIds: ['UNREAD'],
+        },
+    });
 }
 
 /**
- * Adds a label to a message. Creates the label if it doesn't exist.
+ * Main ingestion loop used by the API endpoint.
  */
-export async function addLabel(messageId: string, labelName: string) {
-    try {
-        // 1. Get all labels to find the ID of 'labelName'
-        const res = await gmail.users.labels.list({ userId: 'me' });
-        const labels = res.data.labels || [];
-        let label = labels.find((l) => l.name === labelName);
+export async function checkEmails() {
+    console.log('[Downloader] checkEmails triggered');
+    const label = process.env.GMAIL_LABEL || 'INBOX';
+    const query = `label:${label} is:unread has:attachment`;
 
-        // 2. If label doesn't exist, create it
-        if (!label) {
-            console.log(`Label '${labelName}' not found. Creating it...`);
-            const createRes = await gmail.users.labels.create({
-                userId: 'me',
-                requestBody: {
-                    name: labelName,
-                    labelListVisibility: 'labelShow',
-                    messageListVisibility: 'show'
+    const messages = await listMessages(query, 10);
+    const processed = [];
+
+    for (const msgRef of messages) {
+        if (!msgRef.id) continue;
+        const msg = await getMessage(msgRef.id);
+
+        const companyId = detectCompany(msg.sender + ' ' + msg.subject);
+        let company = getCompanies().find(c => c.id === companyId);
+
+        if (!company) {
+            company = getCompanies().find(c => !!c.gdriveFolderId);
+            if (!company) continue;
+        }
+
+        for (const attach of msg.attachments) {
+            const data = await getAttachment(msgRef.id, attach.id);
+            if (data.data) {
+                const buffer = Buffer.from(data.data, 'base64');
+                const folderId = company?.gdriveFolderId || process.env.COMPANY_FIRMA_A_GDRIVE_FOLDER || '';
+                if (folderId) {
+                    await uploadFile(attach.filename, attach.mimeType, buffer, folderId);
+                    processed.push({ emailId: msgRef.id, file: attach.filename, company: company?.id || 'unknown' });
+                } else {
+                    console.error('[Gmail] No GDrive folder ID available for upload');
                 }
-            });
-            label = createRes.data;
-        }
-
-        if (!label || !label.id) {
-            throw new Error(`Failed to get or create label '${labelName}'`);
-        }
-
-        // 3. Apply label to message
-        await gmail.users.messages.modify({
-            userId: 'me',
-            id: messageId,
-            requestBody: {
-                addLabelIds: [label.id]
             }
-        });
+        }
 
-        console.log(`Added label '${labelName}' (ID: ${label.id}) to message ${messageId}`);
-
-    } catch (error) {
-        console.error(`Error adding label to message ${messageId}:`, error);
-        // Don't throw, just log. Non-critical.
+        if (process.env.GMAIL_MARK_READ === 'true') {
+            await addLabel(msgRef.id, 'PROCESSED');
+        }
     }
+
+    return processed;
 }

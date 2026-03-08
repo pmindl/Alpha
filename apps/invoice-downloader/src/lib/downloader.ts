@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { isValidUrl } from './ssrf';
+import { validateAndResolvePublicIp } from './ssrf';
 
 export async function downloadFile(url: string): Promise<{ data: Buffer, mimeType: string, filename: string | null }> {
     let currentUrl = url;
@@ -8,15 +8,26 @@ export async function downloadFile(url: string): Promise<{ data: Buffer, mimeTyp
 
     try {
         while (hops < maxHops) {
-            // Validate URL before making a request
-            if (!await isValidUrl(currentUrl)) {
+            const urlObj = new URL(currentUrl);
+            const originalHostname = urlObj.hostname;
+
+            // Resolve and validate IP (prevent SSRF and DNS Rebinding)
+            const validatedIp = await validateAndResolvePublicIp(originalHostname);
+            if (!validatedIp) {
                 throw new Error(`Invalid or unsafe URL: ${currentUrl}`);
             }
 
-            const response = await axios.get(currentUrl, {
+            // Pin the IP in the URL to prevent re-resolution
+            // But we must keep the original Host header for many servers (especially CDNs/reverse proxies)
+            urlObj.hostname = validatedIp;
+
+            const response = await axios.get(urlObj.toString(), {
+                headers: {
+                    'Host': originalHostname
+                },
                 responseType: 'arraybuffer',
-                timeout: 30000, // 30s timeout
-                maxRedirects: 0, // Manual redirect handling
+                timeout: 30000,
+                maxRedirects: 0,
                 validateStatus: (status) => status >= 200 && status < 400
             });
 
@@ -51,14 +62,12 @@ export async function downloadFile(url: string): Promise<{ data: Buffer, mimeTyp
             // Fallback filename from URL
             if (!filename) {
                 try {
-                    const urlObj = new URL(currentUrl);
-                    const pathParts = urlObj.pathname.split('/');
+                    const pathParts = new URL(currentUrl).pathname.split('/');
                     const lastPart = pathParts[pathParts.length - 1];
                     if (lastPart && lastPart.length > 0) {
                         filename = lastPart;
                     }
                 } catch (e) {
-                    // simple split if URL parsing fails
                     const urlParts = currentUrl.split('/');
                     filename = urlParts[urlParts.length - 1].split('?')[0];
                 }
@@ -75,12 +84,11 @@ export async function downloadFile(url: string): Promise<{ data: Buffer, mimeTyp
 
         throw new Error('Too many redirects');
 
-    } catch (error) {
-        // Enhance error message if it's our security error, otherwise log and rethrow
-        if (error instanceof Error && error.message.startsWith('Invalid or unsafe URL')) {
+    } catch (error: any) {
+        if (error.message?.startsWith('Invalid or unsafe URL')) {
             console.error('Security Block:', error.message);
         } else {
-            console.error('Error downloading file from URL:', url, error);
+            console.error('Error downloading file from URL:', url, error.message);
         }
         throw error;
     }

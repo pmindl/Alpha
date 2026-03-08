@@ -1,41 +1,48 @@
-export interface InvoiceMetadata {
-    document_type: 'invoice' | 'proforma' | 'credit_note' | 'receipt' | 'false';
-    my_company_identifier: 'firma_a' | 'firma_b' | 'unknown';
-    provider: string;
-    content_type: 'attachment' | 'link' | 'none';
-    invoice_url: string | null;
-    summary: string;
-    relevant_files: string[]; // List of filenames identified as the invoice/receipt
-    is_invoice: boolean;
-}
+import { Invoice } from '@prisma/client';
 
-export interface AttachmentMetadata {
-    id: string;
-    filename: string;
-    mimeType: string;
-    size: number;
-}
+export type InvoiceStatus = 'PENDING' | 'EXPORTED' | 'EXPORT_ERROR' | 'SKIPPED' | 'DUPLICATE';
+export type InvoiceSource = 'EMAIL' | 'URL' | 'UPLOAD' | 'GDRIVE';
 
-export interface EmailData {
-    id: string;
-    threadId: string;
-    subject: string;
-    sender: string;
-    date: string; // ISO string
-    body: string; // Plain text or HTML stripped
-    snippet: string;
-    attachments: AttachmentMetadata[];
-}
-
-export interface DriveUploadResult {
-    fileId: string;
-    webViewLink: string;
+export interface CompanyConfig {
+    id: string; // firma_a
     name: string;
-    isUpdate?: boolean;
+    ico: string;
+    gdriveFolderId: string;
+    sfClientId: string;
+    emailPatterns: string[];
 }
 
-export interface DocumentAnalysisResult {
+export interface ParsedInvoice {
     is_invoice: boolean;
-    reason: string;
-    document_type: 'invoice' | 'receipt' | 'credit_note' | 'other';
+    confidence: number;
+    my_company_identifier: string;
+    supplier: {
+        name: string;
+        ico: string;
+        dic: string;
+        address?: string;
+    };
+    buyer: {
+        name: string;
+        ico: string;
+        dic: string;
+    };
+    invoice: {
+        number: string;
+        variable_symbol: string;
+        date_issued: string;
+        date_due: string;
+        currency: string;
+    };
+    items: Array<{
+        name: string;
+        quantity: number;
+        unit_price: number;
+        vat_rate: number;
+    }>;
+    totals: {
+        subtotal: number;
+        vat: number;
+        total: number;
+    };
 }
