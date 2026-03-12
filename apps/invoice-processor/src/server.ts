@@ -1,13 +1,22 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { getCompanies } from '@/lib/companies';
-import { listFiles, downloadFile } from '@/lib/gdrive';
-import { parseInvoice } from '@/lib/gemini';
-import { parsePacketaInvoice } from '@/lib/parsers/packeta';
-import { CompanyConfig, ParsedInvoice } from '@/lib/types';
-import { logEvent } from '@/lib/logger';
+import express from 'express';
+import cors from 'cors';
+import { db } from './lib/db';
+import { getCompanies } from './lib/companies';
+import { listFiles, downloadFile } from './lib/gdrive';
+import { parseInvoice } from './lib/gemini';
+import { parsePacketaInvoice } from './lib/parsers/packeta';
+import { CompanyConfig, ParsedInvoice } from './lib/types';
+import { logEvent } from './lib/logger';
+import dotenv from 'dotenv';
+import path from 'path';
 
-export const maxDuration = 60; // Allow 60s for processing
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3002;
+
+app.use(cors());
+app.use(express.json());
 
 export async function processCompany(company: CompanyConfig) {
     const results = { processed: 0, skipped: 0, errors: 0 };
@@ -18,7 +27,6 @@ export async function processCompany(company: CompanyConfig) {
         for (const file of files) {
             if (!file.id || !file.name) continue;
 
-            // 1. Check if already processed
             const existing = await db.invoice.findFirst({
                 where: { sourceFileId: file.id }
             });
@@ -32,14 +40,11 @@ export async function processCompany(company: CompanyConfig) {
             await logEvent(db, 'INFO', 'API', `Starting processing for ${file.name}`, { fileId: file.id });
 
             try {
-                // 2. Download
                 const { buffer, mimeType } = await downloadFile(file.id);
 
-                // 3. Parse Invoice
                 let parsed: ParsedInvoice | null = null;
                 let isPacketa = false;
 
-                // Try Packeta Parser (Deterministic)
                 if (mimeType === 'application/pdf') {
                     parsed = await parsePacketaInvoice(buffer);
                     if (parsed) {
@@ -48,9 +53,7 @@ export async function processCompany(company: CompanyConfig) {
                     }
                 }
 
-                // Fallback to Gemini AI
                 if (!parsed) {
-                    // Gemini handles PDF/Images via buffer. Text files need string conversion.
                     let textOrImage: string | Buffer = buffer;
                     if (mimeType.startsWith('text/') || mimeType === 'application/json') {
                         textOrImage = buffer.toString('utf-8');
@@ -59,7 +62,6 @@ export async function processCompany(company: CompanyConfig) {
                     await logEvent(db, 'INFO', 'Gemini', `Parsed ${file.name}`, { confidence: parsed.confidence });
                 }
 
-                // 5. Logic checks
                 let finalCompanyId = company.id;
                 if (parsed.my_company_identifier && parsed.my_company_identifier !== 'unknown') {
                     const validCompany = getCompanies().find(c => c.id === parsed.my_company_identifier);
@@ -81,9 +83,7 @@ export async function processCompany(company: CompanyConfig) {
                     await logEvent(db, 'WARN', 'API', `Skipped ${file.name}: Low confidence`, { confidence: parsed.confidence });
                 }
 
-                // 6. External Duplicate Check
                 if (status === 'PENDING' && parsed.invoice.variable_symbol) {
-                    // Check against DB first to be sure
                     const dbDup = await db.invoice.findFirst({
                         where: {
                             supplierIco: parsed.supplier.ico,
@@ -97,7 +97,6 @@ export async function processCompany(company: CompanyConfig) {
                     }
                 }
 
-                // 7. Save to DB
                 const newInvoice = await db.invoice.create({
                     data: {
                         status,
@@ -130,7 +129,6 @@ export async function processCompany(company: CompanyConfig) {
                 console.error(`Error processing file ${file.id}:`, err);
                 await logEvent(db, 'ERROR', 'API', `Error processing ${file.name}`, { error: (err as Error).message });
 
-                // Record error in DB so we don't loop forever
                 await db.invoice.create({
                     data: {
                         status: 'EXPORT_ERROR',
@@ -155,12 +153,12 @@ export async function processCompany(company: CompanyConfig) {
     return results;
 }
 
-export async function POST(request: Request) {
+// Routes
+app.post('/api/process', async (req, res) => {
     try {
-        // Check auth
-        const apiKey = request.headers.get('x-api-key');
-        if (apiKey !== process.env.APP_API_KEY) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const apiKey = req.headers['x-api-key'] || req.headers.authorization?.split(' ')[1];
+        if (apiKey !== process.env.APP_API_KEY && apiKey !== process.env.CRON_SECRET) {
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
         const companies = getCompanies();
@@ -172,9 +170,52 @@ export async function POST(request: Request) {
             }
         }
 
-        return NextResponse.json({ success: true, summary });
+        res.json({ success: true, summary });
     } catch (error) {
         console.error('Process API error:', error);
-        return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
-}
+});
+
+app.post('/api/trigger', async (req, res) => {
+    try {
+        const action = req.query.action as string;
+        const apiKey = process.env.APP_API_KEY || '';
+        const portToCall = process.env.PORT || 3002;
+        const baseUrl = process.env.APP_BASE_URL || `http://localhost:${portToCall}`;
+
+        if (!action) {
+            return res.status(400).json({ error: 'Missing action' });
+        }
+
+        let childRes;
+        if (action === 'process') {
+            childRes = await fetch(`${baseUrl}/api/process`, {
+                method: 'POST',
+                headers: { 'x-api-key': apiKey }
+            });
+        } else if (action === 'export') {
+            childRes = await fetch(`${baseUrl}/api/export`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+        } else {
+            return res.status(400).json({ error: 'Invalid action' });
+        }
+
+        const data = await childRes.json();
+        res.json(data);
+    } catch (error) {
+        console.error(`Trigger API Error:`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', version: '1.0.0' });
+});
+
+// Start Server
+app.listen(port, () => {
+    console.log(`Invoice Processor Express Server listening on port ${port}`);
+});
