@@ -6,12 +6,14 @@
         "dev": "node ../../scripts/run-with-secrets.js gmail-labeler python3 -X utf8 main.py --mode scheduler",
         "dev:standalone": "python3 -X utf8 main.py --mode scheduler",
         "start": "python3 -X utf8 main.py --mode scheduler",
+        "start:combined": "concurrently \"python3 -X utf8 main.py --mode scheduler\" \"tsx src/mcp-server.ts --transport=sse\"",
         "test": "python3 -m unittest discover tests",
         "mcp": "node ../../scripts/run-with-secrets.js gmail-labeler tsx src/mcp-server.ts",
         "mcp:standalone": "tsx src/mcp-server.ts"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.1",
+        "concurrently": "^8.2.2",
         "dotenv": "^16.4.5",
         "express": "^4.18.2",
         "tsx": "^4.7.1",
