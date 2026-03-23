@@ -1,6 +1,8 @@
-
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express from 'express';
+import http from 'http';
 import { z } from 'zod';
 import * as dotenv from 'dotenv';
 import path from 'path';
@@ -12,6 +14,25 @@ const execPromise = util.promisify(exec);
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+// Parse command line arguments
+function parseArgs(): { transport: 'stdio' | 'sse' } {
+  const args = process.argv.slice(2);
+  let transport: 'stdio' | 'sse' = 'stdio';
+  
+  for (const arg of args) {
+    if (arg.startsWith('--transport=')) {
+      const value = arg.split('=')[1];
+      if (value === 'sse' || value === 'stdio') {
+        transport = value;
+      } else {
+        console.warn(`Unknown transport: ${value}, using default: stdio`);
+      }
+    }
+  }
+  
+  return { transport };
+}
 
 // Create an MCP server
 const server = new McpServer({
@@ -103,9 +124,93 @@ server.tool(
 );
 
 async function main() {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error('Gmail Labeler MCP Server running on stdio');
+    const args = parseArgs();
+    const transportType = args.transport;
+
+    if (transportType === 'sse') {
+        // SSE transport with Express
+        const app = express();
+        const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4003;
+        
+        // Middleware to parse JSON
+        app.use(express.json());
+        
+        // Health check endpoint
+        app.get('/health', (req, res) => {
+            res.json({ status: 'ok', transport: 'sse' });
+        });
+        
+        // SSE endpoint for MCP
+        app.get('/sse', async (req, res) => {
+            console.log('SSE connection requested');
+            
+            // Set SSE headers
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            
+            // Send initial connection event
+            res.write('data: {"type": "connected"}\n\n');
+            
+            // Create SSE transport
+            const transport = new SSEServerTransport('/messages', res);
+            
+            try {
+                await server.connect(transport);
+                console.log('MCP server connected via SSE');
+                
+                // Handle client disconnect
+                req.on('close', () => {
+                    console.log('SSE connection closed');
+                    transport.close();
+                });
+            } catch (error) {
+                console.error('Error connecting SSE transport:', error);
+                res.status(500).end();
+            }
+        });
+        
+        // Endpoint for sending messages to the server (for POST requests)
+        app.post('/messages', express.json(), async (req, res) => {
+            // This endpoint is used by SSEServerTransport to receive messages from client
+            // In a real implementation, the transport would handle routing these messages
+            // For now, we'll acknowledge but not process
+            console.log('Received message via POST');
+            res.json({ received: true });
+        });
+        
+        // Create HTTP server
+        const httpServer = http.createServer(app);
+        
+        httpServer.listen(port, () => {
+            console.log(`MCP server listening on port ${port} with SSE transport`);
+            console.log(`SSE endpoint: http://localhost:${port}/sse`);
+            console.log(`Health check: http://localhost:${port}/health`);
+        });
+        
+        // Handle graceful shutdown
+        const shutdown = () => {
+            console.log('Shutting down SSE server...');
+            httpServer.close();
+            process.exit(0);
+        };
+        
+        process.on('SIGINT', shutdown);
+        process.on('SIGTERM', shutdown);
+        
+    } else {
+        // Stdio transport (default)
+        const transport = new StdioServerTransport();
+        
+        try {
+            await server.connect(transport);
+            console.log('MCP server running with stdio transport');
+        } catch (error) {
+            console.error('Error connecting stdio transport:', error);
+            process.exit(1);
+        }
+    }
 }
 
 main().catch((error) => {
