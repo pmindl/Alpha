@@ -5,13 +5,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
-    // Require CRON_SECRET or APP_API_KEY for security
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && authHeader !== `Bearer ${process.env.APP_API_KEY}`) {
-        const { searchParams } = new URL(request.url);
-        const key = searchParams.get('key');
-        if (key !== process.env.CRON_SECRET && key !== process.env.APP_API_KEY) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get('key');
+
+    // Secure authentication check: strictly verify that the env var is truthy before comparing
+    const isCronSecretValid = process.env.CRON_SECRET && (authHeader === `Bearer ${process.env.CRON_SECRET}` || key === process.env.CRON_SECRET);
+    const isApiKeyValid = process.env.APP_API_KEY && (authHeader === `Bearer ${process.env.APP_API_KEY}` || key === process.env.APP_API_KEY);
+
+    if (!isCronSecretValid && !isApiKeyValid) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {

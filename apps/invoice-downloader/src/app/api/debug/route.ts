@@ -6,6 +6,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
+
+    // Fail securely if secrets are not configured to prevent "undefined" bypass
+    if (!process.env.APP_API_KEY) {
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     if (searchParams.get('key') !== process.env.APP_API_KEY) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

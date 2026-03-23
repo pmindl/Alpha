@@ -13,7 +13,9 @@ const lookup = promisify(dns.lookup);
  */
 export async function validateAndResolvePublicIp(hostname: string): Promise<string | null> {
     try {
-        const { address } = await lookup(hostname);
+        // Remove IPv6 brackets if present (URL parsing retains them, but dns.lookup fails with them)
+        const cleanHostname = hostname.replace(/^\[(.*)\]$/, '$1');
+        const { address } = await lookup(cleanHostname);
         if (address && isPublicIp(address)) {
             return address;
         }

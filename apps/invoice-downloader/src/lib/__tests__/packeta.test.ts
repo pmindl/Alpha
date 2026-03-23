@@ -3,7 +3,23 @@ import { downloadPacketaInvoices } from '../packeta';
 import axios from 'axios';
 import * as gdrive from '../gdrive';
 
-vi.mock('axios');
+vi.mock('googleapis', () => ({
+    google: {
+        drive: vi.fn(),
+        auth: {
+            OAuth2: vi.fn()
+        }
+    }
+}));
+vi.mock('@alpha/google-auth', () => ({
+    getGoogleAuth: vi.fn()
+}));
+vi.mock('axios', () => ({
+    default: {
+        get: vi.fn(),
+        post: vi.fn()
+    }
+}));
 vi.mock('../gdrive');
 vi.mock('../companies', () => ({
     getCompanies: () => [

@@ -71,6 +71,7 @@ async function main() {
             const error = qs.get('error');
 
             if (error) {
+                res.writeHead(400, { 'Content-Type': 'text/plain' });
                 res.end('Error: ' + error);
                 console.error('Auth Error:', error);
                 return;

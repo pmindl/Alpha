@@ -1,6 +1,15 @@
 import { google } from 'googleapis';
 import { NextResponse } from 'next/server';
 
+function escapeHtml(unsafe: string) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
@@ -32,7 +41,7 @@ export async function GET(request: Request) {
             <p>You have successfully authorized the application.</p>
             <div style="background: #f4f4f4; padding: 1rem; border-radius: 5px;">
                 <h3>Your Refresh Token:</h3>
-                <pre style="white-space: pre-wrap; word-break: break-all; font-weight: bold;">${tokens.refresh_token}</pre>
+                <pre style="white-space: pre-wrap; word-break: break-all; font-weight: bold;">${escapeHtml(tokens.refresh_token || '')}</pre>
             </div>
             <p style="margin-top: 1rem;">
                 <strong>Action Required:</strong> Copy the token above and paste it into your <code>.env.local</code> file as <code>GMAIL_REFRESH_TOKEN</code>.
