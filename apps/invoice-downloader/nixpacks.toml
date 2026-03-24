@@ -2,4 +2,4 @@
 cmds = ["npm install --workspace=invoice-downloader --include-workspace-root"]
 
 [start]
-cmd = "npm run start:standalone --workspace=invoice-downloader"
+cmd = "node_modules/.bin/tsx apps/invoice-downloader/src/server.ts"
