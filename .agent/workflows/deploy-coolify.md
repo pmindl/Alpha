@@ -1,10 +1,14 @@
 ---
-description: Deploy an app to VPS via Coolify — commit, push, sync subtree, trigger deploy, verify
+description: Deploy an app to VPS via Coolify — commit, push to monorepo, trigger deploy, verify
 ---
 
 # Deploy to Coolify (VPS)
 
 Deploy a sub-app from the Alpha monorepo to the VPS via Coolify.
+
+> ⚠️ **Single source of truth:** All apps deploy exclusively from the `pmindl/Alpha` monorepo.
+> Standalone repos (`pmindl/invoice-downloader`, etc.) are **archived** — do NOT push to them.
+> Sentinel/Jules security PRs must be reviewed and merged into the monorepo directly.
 
 ## Anti-Loop Rules (MANDATORY)
 These rules MUST be followed by the agent to prevent infinite polling loops:
@@ -16,13 +20,13 @@ These rules MUST be followed by the agent to prevent infinite polling loops:
 
 ## App Registry
 
-| App | Coolify UUID | GitHub Subtree Remote | Subtree Prefix |
-|-----|-------------|----------------------|----------------|
-| `master` | `ncgwsg004s48o0g0osg48wgg` | `origin` (monorepo only) | — |
-| `invoice-downloader` | `d8s8g4088wgsww8kgg8g4s44` | `origin-id` | `apps/invoice-downloader` |
-| `invoice-processor` | `jc4s48ckw4skw4wwc4o804gs` | `origin-ip` | `apps/invoice-processor` |
-| `customer-responder` | `dcws04g00ckw0ws0ogsw0k8s` | TBD | `apps/customer-responder` |
-| `gmail-labeler` | `j88ssos8gw8wo4gsgk0gwccw` | `origin-gl` | `apps/gmail-labeler` |
+| App | Coolify UUID | Monorepo prefix |
+|-----|-------------|-----------------|
+| `master` | `ncgwsg004s48o0g0osg48wgg` | — |
+| `invoice-downloader` | `d8s8g4088wgsww8kgg8g4s44` | `apps/invoice-downloader` |
+| `invoice-processor` | `jc4s48ckw4skw4wwc4o804gs` | `apps/invoice-processor` |
+| `customer-responder` | `dcws04g00ckw0ws0ogsw0k8s` | `apps/customer-responder` |
+| `gmail-labeler` | `j88ssos8gw8wo4gsgk0gwccw` | `apps/gmail-labeler` |
 
 **Coolify API:**
 - URL: `http://157.180.124.79:8000/api/v1`
@@ -31,27 +35,23 @@ These rules MUST be followed by the agent to prevent infinite polling loops:
 ## Steps
 
 1. Make and verify code changes locally.
-   - **Next.js Pre-flight Checks (CRITICAL):**
+   - **Lightweight API (Express/Node) Pre-flight Checks:**
+     - Ensure `nixpacks.toml` exists and has correct install/start commands
+     - Ensure the app has no Next.js dependencies (use Express for pure APIs)
+   - **Next.js Pre-flight Checks (only for UI apps):**
      - Ensure `next.config.mjs` has `output: "standalone"`
      - Ensure `next.config.mjs` ignores build errors: `eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: true }`
      - Ensure an empty `public/.gitkeep` file exists to prevent Docker `COPY` failures
-     - Ensure the `Dockerfile` uses a Debian-based image (e.g., `node:20-slim`) instead of Alpine if the app uses native modules like LanceDB
-   - **CRITICAL:** Run `npx turbo run build --filter=<app-name>` locally to verify no TypeScript or linting errors exist. Do NOT commit if this fails.
    - If you added new dependencies, verify `package-lock.json` is updated and committed.
-2. Commit and push to monorepo:
+
+2. Commit and push to monorepo (this is the ONLY remote):
 ```bash
 git add apps/<app-name>/
 git commit -m "feat(<app-name>): description"
 git push origin master
 ```
 
-3. Sync to the app's standalone GitHub repo (only if it has a subtree remote):
-```bash
-git subtree push --prefix=apps/<app-name> origin-<short> master
-```
-> If this is slow/stuck, wait — subtree push recalculates the full history. Do NOT cancel it.
-
-4. Trigger a Coolify deployment (1 attempt only at this step):
+3. Trigger a Coolify deployment (1 attempt only at this step):
 ```bash
 node -e "fetch('http://157.180.124.79:8000/api/v1/deploy', {method:'POST', headers:{'Authorization':'Bearer <TOKEN>','Content-Type':'application/json'}, body: JSON.stringify({uuid:'<APP_UUID>', force_rebuild:true})}).then(r=>r.json()).then(console.log)"
 ```
@@ -59,7 +59,7 @@ node -e "fetch('http://157.180.124.79:8000/api/v1/deploy', {method:'POST', heade
    **If response is `"Deployment already queued for this commit."`:**
    - The deploy queue is stuck. Ask the user to cancel all queued/failed deployments in the Coolify GUI under the **Deployments** tab, then retry once.
 
-5. Wait for build completion — use a bounded background script (5-min timeout):
+4. Wait for build completion — use a bounded background script (5-min timeout):
 ```js
 // Auto-terminates after 5 min; write UUID into script before running
 node tmp_check_coolify.js
@@ -68,12 +68,12 @@ node tmp_check_coolify.js
    - Stop as soon as status is `finished` or `failed`
    - **Do not poll manually in a loop** — always use the background script
 
-6. Check container logs (1 call only):
+5. Check container logs (1 call only):
 ```bash
 node -e "fetch('http://157.180.124.79:8000/api/v1/applications/<UUID>/logs', {headers:{'Authorization':'Bearer <TOKEN>'}}).then(r=>r.json()).then(d=>console.log(d.logs||d.message))"
 ```
 
-7. Report result to user — success or specific error message
+6. Report result to user — success or specific error message
 
 ## Common Build Failures & Fixes
 
@@ -106,9 +106,14 @@ cmds = ["pip install -r requirements.txt"]
 cmd = "python3 -X utf8 main.py"
 ```
 
-For **Node.js apps** (Next.js, etc.):
-- No `nixpacks.toml` needed — Nixpacks auto-detects Node
-- Ensure `package-lock.json` exists in the sub-app directory OR use `npm install` not `npm ci`
+For **Node.js lightweight API apps** (Express, no build step):
+```toml
+[phases.install]
+cmds = ["npm install --workspace=<app-name> --include-workspace-root"]
+
+[start]
+cmd = "npm run start:standalone --workspace=<app-name>"
+```
 
 ## Verification
 
