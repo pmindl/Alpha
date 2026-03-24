@@ -1,8 +1,5 @@
 [phases.install]
 cmds = ["npm install --workspace=invoice-downloader --include-workspace-root"]
 
-[phases.build]
-cmds = ["NODE_OPTIONS='--max-old-space-size=512' npm run build --workspace=invoice-downloader"]
-
 [start]
 cmd = "npm run start:standalone --workspace=invoice-downloader"
